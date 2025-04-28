@@ -15,6 +15,9 @@ public class ToneGenerator : MonoBehaviour
     public float volume = 0.28f;
     [Range(0.03f, 0.1f)] public float attackTime = 0.05f;
     [Range(0.1f, 0.4f)] public float releaseTime = 0.25f;
+    
+    // 添加频率变化检测阈值
+    [Range(0.001f, 0.1f)] public float frequencyChangeThreshold = 0.05f;
 
     public bool isStereo = false;
 
@@ -153,14 +156,24 @@ public class ToneGenerator : MonoBehaviour
 
         UpdateUI(baseFrequency);
 
+        // 计算目标频率
+        float newTargetFrequency = baseFrequency * Mathf.Pow(2f, ottava + key / 12f);
+        
+        // 检测频率变化是否显著
+        bool significantFrequencyChange = Mathf.Abs(newTargetFrequency - _targetFrequency) / _targetFrequency > 0.05f;
+
         // 空格键触发声音检测移到主线程
         if (Input.GetKey(KeyCode.Space))
         {
             _isFrequencyFrozen = false;
-            _targetFrequency = baseFrequency * Mathf.Pow(2f, ottava + key / 12f);
+            _targetFrequency = newTargetFrequency;
             _targetGain = volume;
 
-            if (_time - (float)AudioSettings.dspTime < attackTime + 0.05f)
+            // 频率变化较大时使用更平滑的淡入
+            if (significantFrequencyChange && _gain > 0.1f) {
+                _gainFadeTime = attackTime * 2.0f;
+            }
+            else if (_time - (float)AudioSettings.dspTime < attackTime + 0.05f)
                 _gainFadeTime = 0.05f;
             else
                 _gainFadeTime = attackTime * Mathf.InverseLerp(0.1f, 0.3f, breathPressure);
@@ -206,6 +219,11 @@ public class ToneGenerator : MonoBehaviour
             deltaTime);
 
         float freqSmoothTime = _isSpacePressed ? frequencyFadeTime : frequencyFadeTime * 0.3f;
+        
+        // 添加频率变化检测和相位调整
+        float previousFrequency = _currentFrequency;
+        
+        // 使用更平滑的频率过渡
         _currentFrequency = Mathf.SmoothDamp(
             _currentFrequency,
             _targetFrequency,
@@ -213,9 +231,39 @@ public class ToneGenerator : MonoBehaviour
             freqSmoothTime,
             float.MaxValue,
             deltaTime);
+            
+        // 改进相位调整逻辑，防止频率变化时的相位跳变
+        if (Mathf.Abs(previousFrequency - _currentFrequency) > 0.01f) {
+            // 使用更精确的相位连续性计算
+            double phaseRatio = _currentFrequency / previousFrequency;
+            currentPhaseD = (currentPhaseD * phaseRatio) % (2.0 * Mathf.PI);
+            // 确保相位值始终为正
+            if (currentPhaseD < 0) currentPhaseD += 2.0 * Mathf.PI;
+        }
 
         double stepD = (2.0 * Mathf.PI) * _currentFrequency / sampleRate;
+        
+        // 计算频率变化量，用于后续处理
+        float freqChangeAmount = Mathf.Abs(_frequencyVelocity) / Mathf.Max(100f, _currentFrequency);
+        
+        // 添加抗爆音处理
+        bool isInitialAttack = _gain < 0.05f && _gainVelocity > 0.1f;
+        bool isFrequencyChanging = freqChangeAmount > 0.01f;
+        
+        // 根据状态调整音频处理参数
+        float antiClickGain = 1.0f;
+        if (isInitialAttack) {
+            // 初始吹奏时使用更平滑的增益曲线
+            antiClickGain = Mathf.SmoothStep(0, 1, _gain / 0.05f);
+        } else if (isFrequencyChanging) {
+            // 频率变化时降低增益以减少噪声
+            antiClickGain = Mathf.Lerp(0.85f, 1.0f, Mathf.Exp(-freqChangeAmount * 15f));
+        }
         float previousSample = _previousSample;
+
+        // 添加频率变化平滑因子
+        freqChangeAmount = Mathf.Abs(previousFrequency - _currentFrequency) / previousFrequency;
+        float smoothingFactor = Mathf.Lerp(0.85f, 0.95f, Mathf.Clamp01(freqChangeAmount * 10f));
 
         for (int i = 0; i < data.Length; i += channels)
         {
@@ -228,8 +276,32 @@ public class ToneGenerator : MonoBehaviour
 
             totalSignal = WaveShaping(totalSignal, deltaTime);
 
-            float newSample = _gain * totalSignal;
-            newSample = previousSample * 0.25f + newSample * 0.75f;
+            // 添加平滑过渡，防止爆音
+            float newSample = _gain * totalSignal * antiClickGain;
+            
+            // 根据频率变化程度动态调整平滑系数
+            float transitionFactor = 0.0f;
+            
+            if (isInitialAttack) {
+                // 初始吹奏时使用更强的平滑
+                transitionFactor = 0.95f;
+            } else if (isFrequencyChanging) {
+                // 频率变化时使用动态平滑系数
+                transitionFactor = Mathf.Lerp(0.85f, 0.98f, Mathf.Clamp01(freqChangeAmount * 20f));
+            } else {
+                // 正常状态下的平滑系数
+                transitionFactor = 0.7f;
+            }
+            
+            // 应用平滑处理
+            newSample = previousSample * transitionFactor + newSample * (1.0f - transitionFactor);
+
+            // 应用额外的平滑处理，消除频率变化时的噪声
+            if (freqChangeAmount > 0.01f || isInitialAttack) {
+                // 在频率变化较大或初始吹奏时应用更强的平滑
+                float antiClickFactor = Mathf.Exp(-(freqChangeAmount * 10f + (isInitialAttack ? 0.5f : 0f)));
+                newSample = previousSample * (1.0f - antiClickFactor) + newSample * antiClickFactor;
+            }
 
             for (int c = 0; c < channels; c++)
                 data[i + c] = newSample;
@@ -537,8 +609,29 @@ public class ToneGenerator : MonoBehaviour
         float damping = Mathf.Exp(-pressure * 0.6f * (_currentFrequency / 1000f));
         sample *= damping;
 
-        float softClip = sample / (1f + Mathf.Abs(sample) * 0.4f);
-        sample = (softClip * 0.95f) + (sample * 0.05f);
+        // 改进动态限幅，防止爆音
+        float compressionThreshold = 0.65f;  // 进一步降低阈值
+        float compressionRatio = 6.0f;      // 增加压缩比
+        
+        if (Mathf.Abs(sample) > compressionThreshold) {
+            float excess = Mathf.Abs(sample) - compressionThreshold;
+            float compressed = compressionThreshold + (excess / compressionRatio);
+            sample = Mathf.Sign(sample) * compressed;
+        }
+
+        // 使用更平滑的软限幅
+        float softClip = sample / (1f + Mathf.Abs(sample) * 0.8f);
+        
+        // 频率变化时应用更强的软限幅
+        float freqChangeAmount = Mathf.Abs(_frequencyVelocity) / Mathf.Max(0.1f, _currentFrequency);
+        float softClipMix = Mathf.Lerp(0.1f, 0.5f, Mathf.Clamp01(freqChangeAmount * 8f));
+        
+        // 初始吹奏时也应用更强的软限幅
+        if (_gain < 0.05f && _gainVelocity > 0.1f) {
+            softClipMix = Mathf.Max(softClipMix, 0.4f);
+        }
+        
+        sample = (softClip * softClipMix) + (sample * (1f - softClipMix));
 
         // 线程安全的输入检测（使用缓存变量）
         if (!_isSpacePressed)
