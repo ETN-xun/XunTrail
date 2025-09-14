@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 public class ToneGenerator : MonoBehaviour
 {
@@ -57,6 +58,22 @@ public class ToneGenerator : MonoBehaviour
     private bool _isFrequencyFrozen = false;
     private bool _isSpacePressed; // 线程安全的缓存变量
     private Dictionary<KeyCode, bool> _keyStates = new Dictionary<KeyCode, bool>();
+    
+    // Xbox手柄控制相关变量
+    private bool _isGamepadConnected = false;
+    private bool _isGamepadButtonPressed = false;
+    private float _gamepadLeftStickX = 0f;
+    private float _gamepadLeftStickY = 0f;
+    private bool _buttonAPressed = false;
+    private bool _buttonBPressed = false;
+    private bool _buttonXPressed = false;
+    private bool _buttonYPressed = false;
+    
+    // 手柄按键对应的频率常量
+    private const float FREQUENCY_LOW_6 = 220.00f; // A按键 - 低音6
+    private const float FREQUENCY_MID_2 = 293.66f; // B按键 - 中音2
+    private const float FREQUENCY_MID_5 = 392.00f; // X按键 - 中音5
+    private const float FREQUENCY_HIGH_1 = 523.26f; // Y按键 - 高音1
 
     // 在ToneGenerator类中添加：
     public static ToneGenerator Instance { get; private set; }
@@ -73,6 +90,9 @@ public class ToneGenerator : MonoBehaviour
     {
         InitializeKeyStates();
         InitializeAudioComponents();
+        
+        // 初始检测是否有手柄连接
+        CheckGamepadConnection();
     }
 
     private void InitializeAudioComponents()
@@ -145,25 +165,34 @@ public class ToneGenerator : MonoBehaviour
     void Update()
     {
         _time = Time.time;
+        
+        // 检测手柄连接状态
+        CheckGamepadConnection();
+        
+        // 更新输入状态
         UpdateKeyStates();
+        UpdateGamepadStates();
         HandleOctaveInput();
 
-        float baseFrequency = GetFrequency();
+        float baseFrequency = GetBaseFrequency();
+        float adjustedFrequency = GetFrequency();
         int animatorState = GetAnimatorState(baseFrequency);
 
         if (xunAnimator != null)
             xunAnimator.SetInteger("tone", animatorState);
 
-        UpdateUI(baseFrequency);
+        UpdateUI(adjustedFrequency);
 
         // 计算目标频率
-        float newTargetFrequency = baseFrequency * Mathf.Pow(2f, ottava + key / 12f);
+        float newTargetFrequency = adjustedFrequency * Mathf.Pow(2f, ottava + key / 12f);
         
         // 检测频率变化是否显著
         bool significantFrequencyChange = Mathf.Abs(newTargetFrequency - _targetFrequency) / _targetFrequency > 0.05f;
 
-        // 空格键触发声音检测移到主线程
-        if (Input.GetKey(KeyCode.Space))
+        // 检测是否应该播放声音（空格键或手柄按键）
+        bool shouldPlaySound = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed;
+        
+        if (shouldPlaySound)
         {
             _isFrequencyFrozen = false;
             _targetFrequency = newTargetFrequency;
@@ -342,12 +371,16 @@ public class ToneGenerator : MonoBehaviour
         }
 
         // 主线程更新空格键状态到私有变量
-        _isSpacePressed = Input.GetKey(KeyCode.Space);
+        _isSpacePressed = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed;
         _keyStates[KeyCode.Space] = _isSpacePressed;
     }
 
     private void HandleOctaveInput()
     {
+        // 如果有手柄连接并且正在使用，则不处理键盘的八度输入
+        if (_isGamepadConnected && _isGamepadButtonPressed)
+            return;
+            
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
             key--;
@@ -368,18 +401,101 @@ public class ToneGenerator : MonoBehaviour
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.Comma))
+        if (Input.GetKeyDown(KeyCode.Comma) || Input.GetKeyDown(KeyCode.DownArrow))
         {
             ottava = Mathf.Max(ottava - 1, -3);
         }
-        else if (Input.GetKeyDown(KeyCode.Period))
+        else if (Input.GetKeyDown(KeyCode.Period) || Input.GetKeyDown(KeyCode.UpArrow))
         {
             ottava = Mathf.Min(ottava + 1, 2);
         }
     }
 
+    private float GetBaseFrequency()
+    {
+        // 如果有手柄按键被按下，优先使用手柄控制
+        if (_isGamepadConnected && _isGamepadButtonPressed)
+        {
+            // 根据按下的按键获取基础频率
+            if (_buttonAPressed)
+                return FREQUENCY_LOW_6;
+            else if (_buttonBPressed)
+                return FREQUENCY_MID_2;
+            else if (_buttonXPressed)
+                return FREQUENCY_MID_5;
+            else if (_buttonYPressed)
+                return FREQUENCY_HIGH_1;
+        }
+        
+        // 如果没有手柄输入，使用键盘控制
+        if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
+            KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+            return 196f;
+        else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, 
+            KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+            return 207.65f;
+        else if (CheckKeys(KeyCode.E, KeyCode.F, 
+            KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+            return 220f;
+        else if (CheckKeys(KeyCode.F, 
+            KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+            return 233.08f;
+        else if (CheckKeys(KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+            return 246.94f;
+        else if (CheckKeys(KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+            return 261.63f;
+        else if (CheckKeys(KeyCode.O, KeyCode.Semicolon))
+            return 277.18f;
+        else if (_keyStates.GetValueOrDefault(KeyCode.Semicolon))
+            return 293.66f;
+        else if (CheckKeys(KeyCode.A, KeyCode.S, KeyCode.D, KeyCode.F, KeyCode.J))
+            return 311.13f;
+        else if (CheckKeys(KeyCode.S, KeyCode.D, KeyCode.F, KeyCode.J))
+            return 329.63f;
+        else if (CheckKeys(KeyCode.D, KeyCode.F, KeyCode.J))
+            return 349.23f;
+        else if (CheckKeys(KeyCode.F, KeyCode.J))
+            return 369.99f;
+        else if (_keyStates.GetValueOrDefault(KeyCode.J))
+            return 392f;
+        else if (CheckKeys(KeyCode.A, KeyCode.F, KeyCode.J))
+            return 415.30f;
+        else if (CheckKeys(KeyCode.F, KeyCode.J))
+            return 440f;
+        else if (_keyStates.GetValueOrDefault(KeyCode.J))
+            return 466.16f;
+        else if (_keyStates.GetValueOrDefault(KeyCode.W))
+            return 493.88f;
+        else
+            return 523.26f;
+    }
+
     private float GetFrequency()
     {
+        float baseFrequency = GetBaseFrequency();
+        
+        // 如果有手柄按键被按下且摇杆被推动，调整频率
+        if (_isGamepadConnected && _isGamepadButtonPressed)
+        {
+            if (Mathf.Abs(_gamepadLeftStickX) > 0.5f || Mathf.Abs(_gamepadLeftStickY) > 0.5f)
+            {
+                // 左右摇杆：降低/升高半个音
+                if (_gamepadLeftStickX < -0.5f)
+                    baseFrequency *= 0.9438743f; // 降低半音 (1/2^(1/12))
+                else if (_gamepadLeftStickX > 0.5f)
+                    baseFrequency *= 1.059463f;  // 升高半音 (2^(1/12))
+                    
+                // 上下摇杆：升高/降低一个音
+                if (_gamepadLeftStickY > 0.5f)
+                    baseFrequency *= 1.122462f;  // 升高全音 (2^(2/12))
+                else if (_gamepadLeftStickY < -0.5f)
+                    baseFrequency *= 0.8908987f; // 降低全音 (1/2^(2/12))
+            }
+            
+            return baseFrequency;
+        }
+        
+        // 如果没有手柄输入，使用键盘控制
         if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
             KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
             return 196f;
@@ -464,36 +580,73 @@ public class ToneGenerator : MonoBehaviour
             return 14;
     }
 
-    private string GetNoteName(float baseFrequency)
+    private string GetNoteName(float frequency)
     {
-        return baseFrequency switch
-        {
-            196f => "低音5",
-            207.65f => "低音5♯",
-            220f => "低音6",
-            233.08f => "低音6♯",
-            246.94f => "低音7",
-            261.63f => "中音1",
-            277.18f => "中音1♯",
-            293.66f => "中音2",
-            311.13f => "中音2♯",
-            329.63f => "中音3",
-            349.23f => "中音4",
-            369.99f => "中音4♯",
-            392f => "中音5",
-            415.30f => "中音5♯",
-            440f => "中音6",
-            _ => "---"
-        };
+        // 使用频率范围匹配，允许一定的误差
+        float tolerance = 2f;
+        
+        // 直接映射频率到音名
+        if (Mathf.Abs(frequency - 196f) < tolerance) return "低音5";
+        if (Mathf.Abs(frequency - 207.65f) < tolerance) return "低音5♯";
+        if (Mathf.Abs(frequency - 220f) < tolerance) return "低音6";
+        if (Mathf.Abs(frequency - 233.08f) < tolerance) return "低音6♯";
+        if (Mathf.Abs(frequency - 246.94f) < tolerance) return "低音7";
+        if (Mathf.Abs(frequency - 261.63f) < tolerance) return "中音1";
+        if (Mathf.Abs(frequency - 277.18f) < tolerance) return "中音1♯";
+        if (Mathf.Abs(frequency - 293.66f) < tolerance) return "中音2";
+        if (Mathf.Abs(frequency - 311.13f) < tolerance) return "中音2♯";
+        if (Mathf.Abs(frequency - 329.63f) < tolerance) return "中音3";
+        if (Mathf.Abs(frequency - 349.23f) < tolerance) return "中音4";
+        if (Mathf.Abs(frequency - 369.99f) < tolerance) return "中音4♯";
+        if (Mathf.Abs(frequency - 392f) < tolerance) return "中音5";
+        if (Mathf.Abs(frequency - 415.30f) < tolerance) return "中音5♯";
+        if (Mathf.Abs(frequency - 440f) < tolerance) return "中音6";
+        if (Mathf.Abs(frequency - 466.16f) < tolerance) return "中音6♯";
+        if (Mathf.Abs(frequency - 493.88f) < tolerance) return "中音7";
+        if (Mathf.Abs(frequency - 523.26f) < tolerance) return "高音1";
+        if (Mathf.Abs(frequency - 554.37f) < tolerance) return "高音1♯";
+        if (Mathf.Abs(frequency - 587.32f) < tolerance) return "高音2";
+        
+        // 如果没有精确匹配，使用计算方法作为后备
+        float c4 = 261.63f;
+        float semitonesFromC4 = 12f * Mathf.Log(frequency / c4, 2f);
+        int semitones = Mathf.RoundToInt(semitonesFromC4);
+        
+        string[] noteNames = { "1", "1♯", "2", "2♯", "3", "4", "4♯", "5", "5♯", "6", "6♯", "7" };
+        int noteIndex = semitones % 12;
+        if (noteIndex < 0) noteIndex += 12;
+        
+        int octave = 4 + semitones / 12;
+        string prefix = octave <= 3 ? "低音" : (octave == 4 ? "中音" : "高音");
+        
+        return prefix + noteNames[noteIndex];
     }
 
-    private void UpdateUI(float baseFrequency)
+    private void UpdateUI(float frequency)
     {
-        text.text = GetNoteName(baseFrequency);
+        // 更新音符名称
+        text.text = GetNoteName(frequency);
+        
+        // 更新八度显示
         OttaText.text = ottava >= 0
             ? $"升{(ottava * 8)}度" 
             : $"降{Mathf.Abs(ottava * 8)}度";
+            
+        // 更新调号显示
         UpdateKeyText();
+        
+        // 如果正在使用手柄，在UI中显示当前按下的按键
+        if (_isGamepadConnected && _isGamepadButtonPressed)
+        {
+            string buttonName = "";
+            if (_buttonAPressed) buttonName = "A - 低音6";
+            else if (_buttonBPressed) buttonName = "B - 中音2";
+            else if (_buttonXPressed) buttonName = "X - 中音5";
+            else if (_buttonYPressed) buttonName = "Y - 高音1";
+            
+            // 在调号文本后添加手柄按键信息
+            keyText.text += $" (手柄: {buttonName})";
+        }
     }
 
     private void UpdateKeyText()
@@ -640,6 +793,66 @@ public class ToneGenerator : MonoBehaviour
             return sample * Mathf.Pow(0.5f, decayExponent * (float)(AudioSettings.dspTime * 2));
         }
         return sample;
+    }
+    
+    // 检测手柄连接状态
+    private void CheckGamepadConnection()
+    {
+        var gamepads = Gamepad.all;
+        _isGamepadConnected = gamepads.Count > 0;
+    }
+    
+    // 更新手柄输入状态
+    private void UpdateGamepadStates()
+    {
+        if (!_isGamepadConnected) return;
+        
+        var gamepad = Gamepad.current;
+        if (gamepad == null) return;
+        
+        // 检测ABXY按键
+        bool prevButtonState = _isGamepadButtonPressed;
+        _buttonAPressed = gamepad.aButton.isPressed;
+        _buttonBPressed = gamepad.bButton.isPressed;
+        _buttonXPressed = gamepad.xButton.isPressed;
+        _buttonYPressed = gamepad.yButton.isPressed;
+        
+        // 更新是否有任意手柄按键被按下
+        _isGamepadButtonPressed = _buttonAPressed || _buttonBPressed || _buttonXPressed || _buttonYPressed;
+        
+        // 读取左摇杆输入（仅用于在按下ABXY时调整频率）
+        Vector2 leftStick = gamepad.leftStick.ReadValue();
+        _gamepadLeftStickX = leftStick.x;
+        _gamepadLeftStickY = leftStick.y;
+        
+        // 读取方向键输入
+        bool dpadUpPressed = gamepad.dpad.up.wasPressedThisFrame;
+        bool dpadDownPressed = gamepad.dpad.down.wasPressedThisFrame;
+        bool dpadLeftPressed = gamepad.dpad.left.wasPressedThisFrame;
+        bool dpadRightPressed = gamepad.dpad.right.wasPressedThisFrame;
+        
+        // 使用方向键上下控制八度
+        if (dpadUpPressed)
+        {
+            ottava = Mathf.Min(ottava + 1, 2); // 升高八度
+        }
+        else if (dpadDownPressed)
+        {
+            ottava = Mathf.Max(ottava - 1, -3); // 降低八度
+        }
+        
+        // 使用方向键左右控制调号（半音变化）
+        if (dpadRightPressed)
+        {
+            key = Mathf.Min(key + 1, 7); // 升高半音
+        }
+        else if (dpadLeftPressed)
+        {
+            key = Mathf.Max(key - 1, -4); // 降低半音
+        }
+        
+        // 限制ottava范围
+        ottava = Mathf.Clamp(ottava, -3, 2);
     }
 
     // 添加当前频率的公共属性

@@ -488,85 +488,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1412175407
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1412175410}
-  - component: {fileID: 1412175409}
-  - component: {fileID: 1412175408}
-  m_Layer: 5
-  m_Name: "\u4E50\u8C31\u89E3\u6790"
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1412175408
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1412175407}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_FontData:
-    m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 128
-    m_FontStyle: 0
-    m_BestFit: 0
-    m_MinSize: 1
-    m_MaxSize: 256
-    m_Alignment: 6
-    m_AlignByGeometry: 0
-    m_RichText: 1
-    m_HorizontalOverflow: 0
-    m_VerticalOverflow: 0
-    m_LineSpacing: 1
-  m_Text: 1=C
---- !u!222 &1412175409
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1412175407}
-  m_CullTransparentMesh: 1
---- !u!224 &1412175410
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1412175407}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1466711962}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 848, y: 503}
-  m_SizeDelta: {x: 1920, y: 1080}
-  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1466711958
 GameObject:
   m_ObjectHideFlags: 0
@@ -664,7 +585,6 @@ RectTransform:
   - {fileID: 1882688796}
   - {fileID: 1847513822}
   - {fileID: 1062302200}
-  - {fileID: 1412175410}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -710,6 +630,7 @@ MonoBehaviour:
   volume: 0.2
   attackTime: 0.03
   releaseTime: 0.1
+  frequencyChangeThreshold: 0.05
   isStereo: 0
   text: {fileID: 1882688797}
   OttaText: {fileID: 1847513823}
@@ -919,8 +840,6 @@ GameObject:
   - component: {fileID: 1866294420}
   - component: {fileID: 1866294422}
   - component: {fileID: 1866294423}
-  - component: {fileID: 1866294424}
-  - component: {fileID: 1866294425}
   m_Layer: 0
   m_Name: xun
   m_TagString: Untagged
@@ -1031,41 +950,6 @@ MonoBehaviour:
   defaultCursor: {fileID: 2800000, guid: f4bab3022c8e37b45b8e1d238e0b8cb6, type: 3}
   pressedCursor: {fileID: 2800000, guid: 15e94df5c07a3f946877423bc26a6029, type: 3}
   hotspot: {x: 0, y: 0}
---- !u!114 &1866294424
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1866294419}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b441020975aa994a947719025ffec20, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  textAsset: {fileID: 4900000, guid: 1adc32b8849fbe64d9764fbda1fe615e, type: 3}
-  lines: []
-  bpm: 0
-  freqs: []
-  times: []
---- !u!114 &1866294425
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1866294419}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d9ef93b6b75e66945afd294f203ba8d2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  LastTime: 0
-  ToneGenerator: {fileID: 1727143615}
-  ScoreRecognition: {fileID: 1866294424}
-  keyInput: C
-  noteInput: C4
-  resultText: {fileID: 1412175408}
 --- !u!1 &1882688795
 GameObject:
   m_ObjectHideFlags: 0
