@@ -6,6 +6,13 @@ public class ActivateChallengeUI : EditorWindow
     [MenuItem("Tools/Activate ChallengeUI")]
     static void ActivateUI()
     {
+        // 检查是否在播放模式下，如果是则跳过
+        if (EditorApplication.isPlaying)
+        {
+            Debug.LogWarning("Cannot activate UI during play mode");
+            return;
+        }
+
         // 查找所有GameObject，包括非激活的
         GameObject[] allObjects = Resources.FindObjectsOfTypeAll<GameObject>();
         

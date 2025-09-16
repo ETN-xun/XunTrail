@@ -27,7 +27,7 @@ public class ChallengeDataManager : MonoBehaviour
         LoadAvailableMusicSheets();
     }
     
-    void LoadAvailableMusicSheets()
+    public void LoadAvailableMusicSheets()
     {
         // 这里可以从文件或Resources加载可用的音乐文件列表
         Debug.Log("ChallengeDataManager: 加载可用音乐文件列表");

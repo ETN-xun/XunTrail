@@ -8,6 +8,13 @@ public class FixChallengeUI
     [MenuItem("Tools/Fix Challenge UI Position")]
     public static void FixUI()
     {
+        // 检查是否在播放模式下，如果是则跳过
+        if (EditorApplication.isPlaying)
+        {
+            Debug.LogWarning("Cannot fix UI during play mode");
+            return;
+        }
+
         // 查找ChallengeUI
         GameObject challengeUI = GameObject.Find("ChallengeUI");
         if (challengeUI == null)
