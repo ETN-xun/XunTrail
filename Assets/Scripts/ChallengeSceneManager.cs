@@ -253,8 +253,7 @@ public class ChallengeSceneManager : MonoBehaviour
             Debug.Log($"ChallengeSceneManager: 正在加载乐谱 {filePath}");
             
             // 使用MusicSheetParser解析乐谱文件
-            MusicSheetParser parser = new MusicSheetParser();
-            selectedMusicSheet = parser.ParseMusicSheet(filePath);
+            selectedMusicSheet = MusicSheetParser.Instance.ParseMusicSheet(filePath);
             
             if (selectedMusicSheet != null)
             {

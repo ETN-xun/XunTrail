@@ -78,9 +78,8 @@ public class FileSelector : MonoBehaviour
         #else
         // 其他平台的备用方案
         Debug.LogWarning("当前平台不支持文件选择对话框，请将txt文件放入StreamingAssets文件夹");
-        #endif
-        
         return null;
+        #endif
     }
 
     // 简化的文件选择方法，用于WebGL等不支持原生对话框的平台

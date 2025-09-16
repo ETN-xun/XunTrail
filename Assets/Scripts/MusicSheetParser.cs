@@ -165,20 +165,36 @@ public string fileName;              // 文件名
 
 public class MusicSheetParser : MonoBehaviour
 {
-    public static MusicSheetParser Instance { get; private set; }
+    private static MusicSheetParser _instance;
+    public static MusicSheetParser Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                GameObject go = new GameObject("MusicSheetParser");
+                _instance = go.AddComponent<MusicSheetParser>();
+                DontDestroyOnLoad(go);
+            }
+            return _instance;
+        }
+    }
     
     void Awake()
     {
-        if (Instance == null)
+        if (_instance == null)
         {
-            Instance = this;
+            _instance = this;
             DontDestroyOnLoad(gameObject);
         }
-        else
+        else if (_instance != this)
         {
             Destroy(gameObject);
         }
     }
+    
+    // 私有构造函数，确保单例模式
+    private MusicSheetParser() { }
     
     // 解析乐谱文件
     public MusicSheet ParseMusicSheet(string filePath)
