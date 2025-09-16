@@ -42,12 +42,34 @@ public class ToneGenerator : MonoBehaviour
     private AudioLowPassFilter _lowPassFilter;
     private AudioHighPassFilter _highPassFilter;
     private AudioEchoFilter _echoFilter;
-    private AudioReverbFilter _reverbFilter;
+    
+    // 音频输入检测相关变量
+    private AudioSource microphoneSource;
+    private AudioClip microphoneClip;
+    private string microphoneName;
+    private bool isMicrophoneActive = false;
+    private float[] spectrumData = new float[1024];
+    private float detectedFrequency = 0f;
+    private float lastDetectionTime = 0f;
+    private const float detectionCooldown = 0.1f;
+    private const float minVolumeThreshold = 0.01f;
+private AudioReverbFilter _reverbFilter;
 
     public Text text;
     public Text OttaText;
     public int ottava = 0;
-    public int key = 0;
+    
+
+    [Header("挑战模式")]
+    private ChallengeManager challengeManager;
+    private float lastNoteTime = 0f;
+
+    private float noteCooldown = 0.5f; // 音符检测冷却时间
+    private const float noteDetectionCooldown = 0.5f; // 音符检测冷却时间
+
+    
+
+public int key = 0;
     public Text keyText;
     public Animator xunAnimator;
     private float _lastDspTime;
@@ -86,13 +108,20 @@ public class ToneGenerator : MonoBehaviour
         _reverbFilter = GetOrAddComponent<AudioReverbFilter>();
     }
 
-    void Start()
+void Start()
     {
         InitializeKeyStates();
         InitializeAudioComponents();
         
         // 初始检测是否有手柄连接
         CheckGamepadConnection();
+        
+        // 获取challengeManager引用
+        challengeManager = FindObjectOfType<ChallengeManager>();
+        if (challengeManager != null)
+        {
+            Debug.Log("找到ChallengeManager，挑战模式功能已启用");
+        }
     }
 
     private void InitializeAudioComponents()
@@ -118,10 +147,154 @@ public class ToneGenerator : MonoBehaviour
         audioSource.loop = true;
         audioSource.Play();
 
-        ConfigureAudioComponents();
+        
+        
+        // 初始化麦克风输入
+        InitializeMicrophone();
+ConfigureAudioComponents();
     }
 
-    private void ConfigureAudioComponents()
+    
+    // 初始化麦克风输入
+    private void InitializeMicrophone()
+    {
+        // 检查是否有可用的麦克风设备
+        if (Microphone.devices.Length > 0)
+        {
+            microphoneName = Microphone.devices[0];
+            Debug.Log($"找到麦克风设备: {microphoneName}");
+            
+            // 创建麦克风音频源
+            GameObject micObject = new GameObject("MicrophoneInput");
+            micObject.transform.SetParent(transform);
+            microphoneSource = micObject.AddComponent<AudioSource>();
+            
+            // 配置麦克风音频源
+            microphoneSource.loop = true;
+            microphoneSource.mute = true; // 静音，只用于检测
+            microphoneSource.volume = 0f;
+            
+            StartMicrophoneRecording();
+        }
+        else
+        {
+            Debug.LogWarning("未找到麦克风设备，将使用键盘输入模式");
+        }
+    }
+    
+    // 开始麦克风录音
+    private void StartMicrophoneRecording()
+    {
+        if (!string.IsNullOrEmpty(microphoneName))
+        {
+            microphoneClip = Microphone.Start(microphoneName, true, 1, 44100);
+            if (microphoneClip != null)
+            {
+                microphoneSource.clip = microphoneClip;
+                microphoneSource.Play();
+                isMicrophoneActive = true;
+                Debug.Log("麦克风录音已开始");
+            }
+            else
+            {
+                Debug.LogError("无法开始麦克风录音");
+            }
+        }
+    }
+    
+    // 停止麦克风录音
+    
+    
+    // 分析麦克风输入并检测频率
+    private void AnalyzeMicrophoneInput()
+    {
+        if (!isMicrophoneActive || microphoneSource == null || microphoneSource.clip == null)
+            return;
+            
+        // 获取频谱数据
+        microphoneSource.GetSpectrumData(spectrumData, 0, FFTWindow.BlackmanHarris);
+        
+        // 检查音量是否足够
+        float volume = GetAverageVolume();
+        if (volume < minVolumeThreshold)
+        {
+            detectedFrequency = 0f;
+            return;
+        }
+        
+        // 找到最强的频率分量
+        float maxValue = 0f;
+        int maxIndex = 0;
+        
+        for (int i = 1; i < spectrumData.Length / 2; i++)
+        {
+            if (spectrumData[i] > maxValue)
+            {
+                maxValue = spectrumData[i];
+                maxIndex = i;
+            }
+        }
+        
+        // 计算频率
+        if (maxValue > 0.001f) // 阈值检查
+        {
+            float frequency = maxIndex * AudioSettings.outputSampleRate / 2.0f / spectrumData.Length;
+            
+            // 只在音乐频率范围内检测 (80Hz - 2000Hz)
+            if (frequency >= 80f && frequency <= 2000f)
+            {
+                detectedFrequency = frequency;
+                lastDetectionTime = Time.time;
+                Debug.Log($"检测到频率: {frequency:F1}Hz, 音量: {volume:F3}");
+            }
+        }
+    }
+    
+    // 获取平均音量
+    private float GetAverageVolume()
+    {
+        float sum = 0f;
+        for (int i = 0; i < spectrumData.Length; i++)
+        {
+            sum += spectrumData[i];
+        }
+        return sum / spectrumData.Length;
+    }
+    
+    // 根据检测到的频率计算音符
+    private string GetNoteFromFrequency(float frequency)
+    {
+        if (frequency <= 0f) return "";
+        
+        string[] noteNames = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+        
+        // A4 = 440Hz 作为参考
+        float a4Frequency = 440f;
+        float noteNumber = 12 * Mathf.Log(frequency / a4Frequency, 2) + 69;
+        
+        int noteIndex = Mathf.RoundToInt(noteNumber) % 12;
+        if (noteIndex < 0) noteIndex += 12;
+        
+        int octave = Mathf.FloorToInt(noteNumber / 12f) - 1;
+        
+        return noteNames[noteIndex] + octave;
+    }
+    
+    // 清理资源
+    void OnDestroy()
+    {
+        StopMicrophoneRecording();
+    }
+private void StopMicrophoneRecording()
+    {
+        if (isMicrophoneActive && !string.IsNullOrEmpty(microphoneName))
+        {
+            Microphone.End(microphoneName);
+            isMicrophoneActive = false;
+            Debug.Log("麦克风录音已停止");
+        }
+    }
+private void ConfigureAudioComponents()
     {
         if (_lowPassFilter == null || _highPassFilter == null) return;
 
@@ -162,11 +335,15 @@ public class ToneGenerator : MonoBehaviour
         return component;
     }
 
-    void Update()
+void Update()
     {
         _time = Time.time;
         
-        // 检测手柄连接状态
+        
+        
+        // 分析麦克风输入
+        AnalyzeMicrophoneInput();
+// 检测手柄连接状态
         CheckGamepadConnection();
         
         // 更新输入状态
@@ -222,6 +399,9 @@ public class ToneGenerator : MonoBehaviour
             _frozenFrequency = _currentFrequency;
 
         SetFilterCutoff(_currentFrequency);
+        
+        // 检测挑战模式中的音符匹配
+        CheckNoteForChallenge();
     }
 
     void OnAudioFilterRead(float[] data, int channels)
@@ -411,8 +591,16 @@ public class ToneGenerator : MonoBehaviour
         }
     }
 
-    private float GetBaseFrequency()
+private float GetBaseFrequency()
     {
+        // 如果有麦克风输入，优先使用音频检测
+        if (isMicrophoneActive && detectedFrequency > 0f && Time.time - lastDetectionTime < 0.5f)
+        {
+            return detectedFrequency;
+        }
+        
+        // 如果没有麦克风输入或检测不到声音，使用键盘/手柄控制作为备用
+        
         // 如果有手柄按键被按下，优先使用手柄控制
         if (_isGamepadConnected && _isGamepadButtonPressed)
         {
@@ -440,34 +628,20 @@ public class ToneGenerator : MonoBehaviour
         else if (CheckKeys(KeyCode.F, 
             KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
             return 233.08f;
-        else if (CheckKeys(KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+        else if (CheckKeys(
+            KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
             return 246.94f;
-        else if (CheckKeys(KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+        else if (CheckKeys(
+            KeyCode.I, KeyCode.O, KeyCode.Semicolon))
             return 261.63f;
-        else if (CheckKeys(KeyCode.O, KeyCode.Semicolon))
+        else if (CheckKeys(
+            KeyCode.O, KeyCode.Semicolon))
             return 277.18f;
-        else if (_keyStates.GetValueOrDefault(KeyCode.Semicolon))
+        else if (CheckKeys(
+            KeyCode.Semicolon))
             return 293.66f;
-        else if (CheckKeys(KeyCode.A, KeyCode.S, KeyCode.D, KeyCode.F, KeyCode.J))
-            return 311.13f;
-        else if (CheckKeys(KeyCode.S, KeyCode.D, KeyCode.F, KeyCode.J))
-            return 329.63f;
-        else if (CheckKeys(KeyCode.D, KeyCode.F, KeyCode.J))
-            return 349.23f;
-        else if (CheckKeys(KeyCode.F, KeyCode.J))
-            return 369.99f;
-        else if (_keyStates.GetValueOrDefault(KeyCode.J))
-            return 392f;
-        else if (CheckKeys(KeyCode.A, KeyCode.F, KeyCode.J))
-            return 415.30f;
-        else if (CheckKeys(KeyCode.F, KeyCode.J))
-            return 440f;
-        else if (_keyStates.GetValueOrDefault(KeyCode.J))
-            return 466.16f;
-        else if (_keyStates.GetValueOrDefault(KeyCode.W))
-            return 493.88f;
-        else
-            return 523.26f;
+        
+        return _currentFrequency; // 返回当前频率作为默认值
     }
 
     private float GetFrequency()
@@ -625,18 +799,20 @@ public class ToneGenerator : MonoBehaviour
     private void UpdateUI(float frequency)
     {
         // 更新音符名称
-        text.text = GetNoteName(frequency);
+        if (text != null)
+            text.text = GetNoteName(frequency);
         
         // 更新八度显示
-        OttaText.text = ottava >= 0
-            ? $"升{(ottava * 8)}度" 
-            : $"降{Mathf.Abs(ottava * 8)}度";
+        if (OttaText != null)
+            OttaText.text = ottava >= 0
+                ? $"升{(ottava * 8)}度" 
+                : $"降{Mathf.Abs(ottava * 8)}度";
             
         // 更新调号显示
         UpdateKeyText();
         
         // 如果正在使用手柄，在UI中显示当前按下的按键
-        if (_isGamepadConnected && _isGamepadButtonPressed)
+        if (_isGamepadConnected && _isGamepadButtonPressed && keyText != null)
         {
             string buttonName = "";
             if (_buttonAPressed) buttonName = "A - 低音6";
@@ -651,22 +827,25 @@ public class ToneGenerator : MonoBehaviour
 
     private void UpdateKeyText()
     {
-        keyText.text = key switch
+        if (keyText != null)
         {
-            -4 => "1=A\u266D",
-            -3 => "1=A",
-            -2 => "1=B\u266D",
-            -1 => "1=B",
-            0 => "1=C",
-            1 => "1=D\u266D",
-            2 => "1=D",
-            3 => "1=E\u266D",
-            4 => "1=E",
-            5 => "1=F",
-            6 => "1=F\u266F",
-            7 => "1=G",
-            _ => "---"
-        };
+            keyText.text = key switch
+            {
+                -4 => "1=A\u266D",
+                -3 => "1=A",
+                -2 => "1=B\u266D",
+                -1 => "1=B",
+                0 => "1=C",
+                1 => "1=D\u266D",
+                2 => "1=D",
+                3 => "1=E\u266D",
+                4 => "1=E",
+                5 => "1=F",
+                6 => "1=F\u266F",
+                7 => "1=G",
+                _ => "---"
+            };
+        }
     }
 
     private void SetFilterCutoff(float frequency)
@@ -855,6 +1034,120 @@ public class ToneGenerator : MonoBehaviour
         ottava = Mathf.Clamp(ottava, -3, 2);
     }
 
-    // 添加当前频率的公共属性
+        // 获取当前频率的公共方法
+    public float GetCurrentFrequency()
+    {
+        return _currentFrequency;
+    }
+    
+    // 获取目标频率的公共方法
+    public float GetTargetFrequency()
+    {
+        return _targetFrequency;
+    }
+    
+// 添加当前频率的公共属性
     public float CurrentFrequency => _currentFrequency;
+
+
+    // 检测当前演奏的音符是否与挑战模式中的目标音符匹配
+void CheckNoteForChallenge()
+    {
+        // 只在挑战模式下检测音符
+        if (ChallengeManager.Instance == null || !ChallengeManager.Instance.IsInChallenge())
+            return;
+            
+        // 检查是否有足够的音量（正在演奏）
+        if (_gain < 0.1f)
+            return;
+            
+        // 检查冷却时间
+        if (Time.time - lastNoteTime < noteCooldown)
+            return;
+            
+        // 获取当前音符名称
+        string currentNote = GetCurrentNoteName();
+        if (string.IsNullOrEmpty(currentNote))
+            return;
+            
+        // 获取期望的音符
+        string expectedNote = ChallengeManager.Instance.GetCurrentExpectedNote();
+        if (string.IsNullOrEmpty(expectedNote))
+            return;
+            
+        Debug.Log($"正在检测音符: 当前={currentNote}, 期望={expectedNote}, 音量={_gain:F2}");
+        
+        // 检查音符是否匹配
+        if (IsCorrectNote(currentNote, expectedNote))
+        {
+            lastNoteTime = Time.time;
+            ChallengeManager.Instance.OnNoteDetected(currentNote);
+            Debug.Log($"检测到正确音符: {currentNote} 匹配 {expectedNote}");
+        }
+        else
+        {
+            Debug.Log($"音符不匹配: {currentNote} != {expectedNote}");
+        }
+    }
+    
+    // 获取当前演奏的音符名称
+private string GetCurrentNoteName()
+    {
+        // 如果有麦克风输入，使用检测到的频率
+        if (isMicrophoneActive && detectedFrequency > 0f && Time.time - lastDetectionTime < 0.5f)
+        {
+            return GetNoteFromFrequency(detectedFrequency);
+        }
+        
+        // 否则使用键盘/手柄输入的频率
+        float baseFrequency = GetBaseFrequency();
+        if (baseFrequency <= 0f) return "";
+        
+        // 根据频率计算音符
+        string[] noteNames = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+        
+        // A4 = 440Hz 作为参考
+        float a4Frequency = 440f;
+        float noteNumber = 12 * Mathf.Log(baseFrequency / a4Frequency, 2) + 69;
+        
+        int noteIndex = Mathf.RoundToInt(noteNumber) % 12;
+        if (noteIndex < 0) noteIndex += 12;
+        
+        int octave = Mathf.FloorToInt(noteNumber / 12f) - 1;
+        
+        return noteNames[noteIndex] + octave;
+    }
+    
+    // 检查是否为正确的音符
+bool IsCorrectNote(string currentNote, string expectedNote)
+    {
+        // 提取音符名称的主要部分（去掉八度数字）
+        string currentNoteBase = ExtractNoteBase(currentNote);
+        string expectedNoteBase = ExtractNoteBase(expectedNote);
+        
+        // 比较基础音符名称
+        return string.Equals(currentNoteBase, expectedNoteBase, System.StringComparison.OrdinalIgnoreCase);
+    }
+    
+    // 提取音符的基础名称（去掉八度信息）
+    private string ExtractNoteBase(string noteName)
+    {
+        if (string.IsNullOrEmpty(noteName))
+            return "";
+            
+        string result = "";
+        foreach (char c in noteName)
+        {
+            if (char.IsLetter(c) || c == '#')
+            {
+                result += c;
+            }
+            else
+            {
+                break; // 遇到数字就停止
+            }
+        }
+        
+        return result;
+    }
 }

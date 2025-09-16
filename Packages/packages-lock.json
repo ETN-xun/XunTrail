@@ -1,5 +1,13 @@
 {
   "dependencies": {
+    "com.coplaydev.unity-mcp": {
+      "version": "file:C:/Users/LWX/Downloads/unity-mcp-main/UnityMcpBridge",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.0.2"
+      }
+    },
     "com.unity.2d.animation": {
       "version": "9.1.1",
       "depth": 1,
@@ -162,6 +170,14 @@
       },
       "url": "https://packages.unity.cn"
     },
+    "com.unity.ide.trae": {
+      "version": "file:C:/Users/LWX/Downloads/com.unity.ide.trae-main",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.unity.test-framework": "1.1.9"
+      }
+    },
     "com.unity.ide.visualstudio": {
       "version": "2.0.22",
       "depth": 0,
@@ -182,6 +198,13 @@
     },
     "com.unity.mathematics": {
       "version": "1.2.6",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.cn"
+    },
+    "com.unity.nuget.newtonsoft-json": {
+      "version": "3.2.1",
       "depth": 1,
       "source": "registry",
       "dependencies": {},
