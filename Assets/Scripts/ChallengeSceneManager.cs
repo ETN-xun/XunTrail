@@ -140,14 +140,11 @@ public class ChallengeSceneManager : MonoBehaviour
         Debug.Log("ChallengeSceneManager: 选择文件按钮被点击");
         
         // 尝试打开文件选择对话框
-        string selectedFile = null;
+        string selectedFile = FileSelector.OpenFileDialog("选择乐谱文件", "文本文件\0*.txt\0所有文件\0*.*\0");
         
-        #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        // 在Windows独立版本中使用原生文件对话框
-        selectedFile = FileSelector.OpenFileDialog("选择乐谱文件", "文本文件\0*.txt\0所有文件\0*.*\0");
-        #endif
-        
-        if (!string.IsNullOrEmpty(selectedFile) && FileSelector.IsValidMusicSheetFile(selectedFile))
+        if (!string.IsNullOrEmpty(selectedFile))
+        {
+            if (FileSelector.IsValidMusicSheetFile(selectedFile))
         {
             // 用户选择了有效的外部文件
             selectedFilePath = selectedFile;
@@ -156,12 +153,27 @@ public class ChallengeSceneManager : MonoBehaviour
             if (selectFileText != null)
                 selectFileText.text = $"已选择: {fileName}";
                 
-            // 启用开始按钮
-            if (startButton != null)
-                startButton.interactable = true;
+            // 加载并解析选择的乐谱文件
+            LoadMusicSheet(selectedFile);
                 
             Debug.Log($"ChallengeSceneManager: 选择了外部文件 {fileName}");
             return;
+            }
+            else
+            {
+                // 选择的文件无效
+                Debug.LogWarning($"ChallengeSceneManager: 选择的文件不是有效的乐谱文件: {selectedFile}");
+                if (selectFileText != null)
+                    selectFileText.text = "选择的文件格式无效";
+                return;
+            }
+        }
+        else
+        {
+            // 用户取消了文件选择
+            Debug.Log("ChallengeSceneManager: 用户取消了文件选择");
+            if (selectFileText != null)
+                selectFileText.text = "未选择文件";
         }
         
         // 如果没有选择外部文件，则从StreamingAssets加载

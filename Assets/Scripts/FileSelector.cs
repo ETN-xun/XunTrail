@@ -2,6 +2,9 @@ using System;
 using System.IO;
 using UnityEngine;
 using System.Runtime.InteropServices;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class FileSelector : MonoBehaviour
 {
@@ -45,6 +48,12 @@ public class FileSelector : MonoBehaviour
 
     public static string OpenFileDialog(string title = "选择文件", string filter = "文本文件\0*.txt\0所有文件\0*.*\0")
     {
+        #if UNITY_EDITOR
+        // 在Unity编辑器中使用EditorUtility.OpenFilePanel
+        string path = EditorUtility.OpenFilePanel(title, "", "txt");
+        return string.IsNullOrEmpty(path) ? null : path;
+        #elif UNITY_STANDALONE_WIN
+        // 在Windows独立版本中使用原生文件对话框
         try
         {
             OpenFileName ofn = new OpenFileName();
@@ -66,6 +75,10 @@ public class FileSelector : MonoBehaviour
         {
             Debug.LogError("文件选择对话框错误: " + e.Message);
         }
+        #else
+        // 其他平台的备用方案
+        Debug.LogWarning("当前平台不支持文件选择对话框，请将txt文件放入StreamingAssets文件夹");
+        #endif
         
         return null;
     }
