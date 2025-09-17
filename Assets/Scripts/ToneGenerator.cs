@@ -680,15 +680,24 @@ private string GetNoteName(float frequency)
         float semitonesFromC4 = 12f * Mathf.Log(frequency / c4Frequency, 2f);
         int semitones = Mathf.RoundToInt(semitonesFromC4);
         
-        // 计算音符在简谱中的位置（1-7，以C调为基准）
-        int noteIndex = semitones % 12;
-        if (noteIndex < 0) noteIndex += 12;
+        // 正确计算八度和音符索引
+        int octaveOffset;
+        int noteIndex;
+        
+        if (semitones >= 0)
+        {
+            octaveOffset = semitones / 12;
+            noteIndex = semitones % 12;
+        }
+        else
+        {
+            // 对于负数，需要特殊处理以确保正确的八度计算
+            octaveOffset = (semitones - 11) / 12;  // 向下取整
+            noteIndex = semitones - octaveOffset * 12;  // 确保noteIndex在0-11范围内
+        }
         
         // 固定简谱音符映射（以C调为基准：C=1, D=2, E=3, F=4, G=5, A=6, B=7）
         string[] fixedSolfegeNames = { "1", "1♯", "2", "2♯", "3", "4", "4♯", "5", "5♯", "6", "6♯", "7" };
-        
-        // 计算八度（相对于C4）
-        int octaveOffset = semitones / 12;
         
         // 确定音高前缀
         string prefix;
