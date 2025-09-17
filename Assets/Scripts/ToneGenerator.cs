@@ -668,6 +668,46 @@ private string GetNoteName(float frequency)
         return prefix + solfegeNames[noteIndex];
     }
     
+    // 获取固定的音名（以C调为基准，不随调号变化）
+    private string GetFixedNoteName(float frequency)
+    {
+        if (frequency <= 0f) return "";
+        
+        // 以C4 = 261.63Hz为基准
+        float c4Frequency = 261.63f;
+        
+        // 计算相对于C4的半音数差
+        float semitonesFromC4 = 12f * Mathf.Log(frequency / c4Frequency, 2f);
+        int semitones = Mathf.RoundToInt(semitonesFromC4);
+        
+        // 计算音符在简谱中的位置（1-7，以C调为基准）
+        int noteIndex = semitones % 12;
+        if (noteIndex < 0) noteIndex += 12;
+        
+        // 固定简谱音符映射（以C调为基准：C=1, D=2, E=3, F=4, G=5, A=6, B=7）
+        string[] fixedSolfegeNames = { "1", "1♯", "2", "2♯", "3", "4", "4♯", "5", "5♯", "6", "6♯", "7" };
+        
+        // 计算八度（相对于C4）
+        int octaveOffset = semitones / 12;
+        
+        // 确定音高前缀
+        string prefix;
+        if (octaveOffset < 0)
+        {
+            prefix = "低音";
+        }
+        else if (octaveOffset == 0)
+        {
+            prefix = "中音";
+        }
+        else
+        {
+            prefix = "高音";
+        }
+        
+        return prefix + fixedSolfegeNames[noteIndex];
+    }
+    
     // 根据调号获取主音的频率（第4八度）
     private float GetTonicFrequency(int keyValue)
     {
@@ -696,9 +736,9 @@ private string GetNoteName(float frequency)
 
     private void UpdateUI(float frequency)
     {
-        // 更新音符名称
+        // 更新音符名称 - 使用固定音名（不随调号变化）
         if (text != null)
-            text.text = GetNoteName(frequency);
+            text.text = GetFixedNoteName(frequency);
         
         // 更新八度显示
         if (OttaText != null)
