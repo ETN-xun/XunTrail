@@ -629,46 +629,69 @@ private float GetBaseFrequency()
             return 14;
     }
 
-    private string GetNoteName(float frequency)
+private string GetNoteName(float frequency)
     {
-        // 使用频率范围匹配，允许一定的误差
-        float tolerance = 2f;
+        if (frequency <= 0f) return "";
         
-        // 直接映射频率到音名
-        if (Mathf.Abs(frequency - 196f) < tolerance) return "低音5";
-        if (Mathf.Abs(frequency - 207.65f) < tolerance) return "低音5♯";
-        if (Mathf.Abs(frequency - 220f) < tolerance) return "低音6";
-        if (Mathf.Abs(frequency - 233.08f) < tolerance) return "低音6♯";
-        if (Mathf.Abs(frequency - 246.94f) < tolerance) return "低音7";
-        if (Mathf.Abs(frequency - 261.63f) < tolerance) return "中音1";
-        if (Mathf.Abs(frequency - 277.18f) < tolerance) return "中音1♯";
-        if (Mathf.Abs(frequency - 293.66f) < tolerance) return "中音2";
-        if (Mathf.Abs(frequency - 311.13f) < tolerance) return "中音2♯";
-        if (Mathf.Abs(frequency - 329.63f) < tolerance) return "中音3";
-        if (Mathf.Abs(frequency - 349.23f) < tolerance) return "中音4";
-        if (Mathf.Abs(frequency - 369.99f) < tolerance) return "中音4♯";
-        if (Mathf.Abs(frequency - 392f) < tolerance) return "中音5";
-        if (Mathf.Abs(frequency - 415.30f) < tolerance) return "中音5♯";
-        if (Mathf.Abs(frequency - 440f) < tolerance) return "中音6";
-        if (Mathf.Abs(frequency - 466.16f) < tolerance) return "中音6♯";
-        if (Mathf.Abs(frequency - 493.88f) < tolerance) return "中音7";
-        if (Mathf.Abs(frequency - 523.26f) < tolerance) return "高音1";
-        if (Mathf.Abs(frequency - 554.37f) < tolerance) return "高音1♯";
-        if (Mathf.Abs(frequency - 587.32f) < tolerance) return "高音2";
+        // 根据当前调号获取主音的频率（第4八度）
+        float tonicFrequency = GetTonicFrequency(key);
         
-        // 如果没有精确匹配，使用计算方法作为后备
-        float c4 = 261.63f;
-        float semitonesFromC4 = 12f * Mathf.Log(frequency / c4, 2f);
-        int semitones = Mathf.RoundToInt(semitonesFromC4);
+        // 计算相对于当前调号主音的半音数差
+        float semitonesFromTonic = 12f * Mathf.Log(frequency / tonicFrequency, 2f);
+        int semitones = Mathf.RoundToInt(semitonesFromTonic);
         
-        string[] noteNames = { "1", "1♯", "2", "2♯", "3", "4", "4♯", "5", "5♯", "6", "6♯", "7" };
+        // 计算音符在简谱中的位置（1-7）
         int noteIndex = semitones % 12;
         if (noteIndex < 0) noteIndex += 12;
         
-        int octave = 4 + semitones / 12;
-        string prefix = octave <= 3 ? "低音" : (octave == 4 ? "中音" : "高音");
+        // 简谱音符映射（相对于调号主音）
+        string[] solfegeNames = { "1", "1♯", "2", "2♯", "3", "4", "4♯", "5", "5♯", "6", "6♯", "7" };
         
-        return prefix + noteNames[noteIndex];
+        // 计算八度（相对于调号主音的第4八度）
+        int octaveOffset = semitones / 12;
+        
+        // 确定音高前缀
+        string prefix;
+        if (octaveOffset < 0)
+        {
+            prefix = "低音";
+        }
+        else if (octaveOffset == 0)
+        {
+            prefix = "中音";
+        }
+        else
+        {
+            prefix = "高音";
+        }
+        
+        return prefix + solfegeNames[noteIndex];
+    }
+    
+    // 根据调号获取主音的频率（第4八度）
+    private float GetTonicFrequency(int keyValue)
+    {
+        // 调号对应的主音半音数（相对于C）
+        int tonicSemitone = keyValue switch
+        {
+            -4 => 8,  // A♭
+            -3 => 9,  // A
+            -2 => 10, // B♭
+            -1 => 11, // B
+            0 => 0,   // C
+            1 => 1,   // D♭
+            2 => 2,   // D
+            3 => 3,   // E♭
+            4 => 4,   // E
+            5 => 5,   // F
+            6 => 6,   // F♯
+            7 => 7,   // G
+            _ => 0    // 默认C
+        };
+        
+        // C4 = 261.63Hz 作为基准，计算主音频率
+        float c4Frequency = 261.63f;
+        return c4Frequency * Mathf.Pow(2f, tonicSemitone / 12f);
     }
 
     private void UpdateUI(float frequency)

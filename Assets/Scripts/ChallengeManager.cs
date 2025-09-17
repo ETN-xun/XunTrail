@@ -716,8 +716,8 @@ private void CalculateSimilarityAndEndChallenge()
         
         string solfegeName = solfegeNames[relativeSemitone];
         
-        // 添加八度标记
-        string octavePrefix = GetOctavePrefix(octave);
+        // 添加八度标记 - 根据当前调号判断音高区域
+        string octavePrefix = GetOctavePrefixByKey(noteName, key);
         
         return octavePrefix + solfegeName;
     }
@@ -765,7 +765,7 @@ private void CalculateSimilarityAndEndChallenge()
         };
     }
     
-    // 根据八度获取前缀
+    // 根据八度获取前缀（原方法，保留兼容性）
     private string GetOctavePrefix(int octave)
     {
         return octave switch
@@ -774,6 +774,51 @@ private void CalculateSimilarityAndEndChallenge()
             4 => "中音",
             >= 5 => "高音"
         };
+    }
+    
+    // 根据调号和音符名称获取八度前缀
+    private string GetOctavePrefixByKey(string noteName, int key)
+    {
+        if (string.IsNullOrEmpty(noteName))
+            return "中音";
+            
+        // 提取音符基础名称和八度
+        string noteBase = ExtractNoteBase(noteName);
+        int octave = ExtractOctave(noteName);
+        
+        // 音符到半音数的映射（C=0, C#=1, D=2, ...）
+        Dictionary<string, int> noteToSemitone = new Dictionary<string, int>
+        {
+            {"C", 0}, {"C#", 1}, {"D", 2}, {"D#", 3}, {"E", 4}, {"F", 5},
+            {"F#", 6}, {"G", 7}, {"G#", 8}, {"A", 9}, {"A#", 10}, {"B", 11}
+        };
+        
+        if (!noteToSemitone.ContainsKey(noteBase))
+            return "中音";
+            
+        // 计算当前音符的绝对半音数（相对于C0）
+        int noteAbsoluteSemitone = octave * 12 + noteToSemitone[noteBase];
+        
+        // 计算调号主音在第4八度的绝对半音数
+        int tonicSemitone = GetTonicSemitone(key);
+        int tonicAbsoluteSemitone = 4 * 12 + tonicSemitone; // 调号主音默认在第4八度
+        
+        // 计算音符相对于调号主音的半音差
+        int semitoneDifference = noteAbsoluteSemitone - tonicAbsoluteSemitone;
+        
+        // 根据半音差判断音高区域
+        if (semitoneDifference < 0)
+        {
+            return "低音"; // 比调号主音低的都是低音
+        }
+        else if (semitoneDifference >= 12)
+        {
+            return "高音"; // 比调号主音高一个八度及以上的都是高音
+        }
+        else
+        {
+            return "中音"; // 在调号主音到高一个八度之间的是中音
+        }
     }
 
     // 获取当前调号
