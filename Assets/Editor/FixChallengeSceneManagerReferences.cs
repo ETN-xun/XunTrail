@@ -23,8 +23,17 @@ public class FixChallengeSceneManagerReferences
         GameObject sceneController = GameObject.Find("SceneController");
         if (sceneController == null)
         {
-            Debug.LogWarning("SceneController not found");
-            return;
+            // 尝试查找任何包含ChallengeSceneManager组件的GameObject
+            ChallengeSceneManager[] managers = Object.FindObjectsOfType<ChallengeSceneManager>();
+            if (managers.Length == 0)
+            {
+                // 如果没有找到ChallengeSceneManager，说明当前场景不需要修复引用
+                return;
+            }
+            
+            // 使用第一个找到的ChallengeSceneManager
+            sceneController = managers[0].gameObject;
+            Debug.Log($"Using GameObject '{sceneController.name}' with ChallengeSceneManager component");
         }
 
         // 获取ChallengeSceneManager组件
