@@ -7,6 +7,7 @@ public class ChallengeDataManager : MonoBehaviour
     
     [Header("挑战数据")]
     public List<MusicSheet> availableMusicSheets = new List<MusicSheet>();
+    private MusicSheet selectedMusicSheet;
     
     void Awake()
     {
@@ -41,6 +42,17 @@ public class ChallengeDataManager : MonoBehaviour
                 return sheet;
         }
         return null;
+    }
+    
+    public void SetSelectedMusicSheet(MusicSheet musicSheet)
+    {
+        selectedMusicSheet = musicSheet;
+        Debug.Log($"ChallengeDataManager: 设置选中的乐谱 - {musicSheet?.name ?? "null"}");
+    }
+    
+    public MusicSheet GetSelectedMusicSheet()
+    {
+        return selectedMusicSheet;
     }
 }
 

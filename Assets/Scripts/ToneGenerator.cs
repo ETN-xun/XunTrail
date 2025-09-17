@@ -43,18 +43,8 @@ public class ToneGenerator : MonoBehaviour
     private AudioHighPassFilter _highPassFilter;
     private AudioEchoFilter _echoFilter;
     
-    // 音频输入检测相关变量
-    private AudioSource microphoneSource;
-    private AudioClip microphoneClip;
-    private string microphoneName;
-    private bool isMicrophoneActive = false;
-    private float[] spectrumData = new float[1024];
-    private float detectedFrequency = 0f;
-    private float lastDetectionTime = 0f;
-    private const float detectionCooldown = 0.1f;
-    private const float minVolumeThreshold = 0.01f;
-private AudioReverbFilter _reverbFilter;
-
+    private AudioReverbFilter _reverbFilter;
+    
     public Text text;
     public Text OttaText;
     public int ottava = 0;
@@ -148,119 +138,23 @@ void Start()
         audioSource.Play();
 
         
-        
-        // 初始化麦克风输入
-        InitializeMicrophone();
-ConfigureAudioComponents();
+        ConfigureAudioComponents();
     }
 
     
-    // 初始化麦克风输入
-    private void InitializeMicrophone()
+    // 检测是否有任何音符键被按下
+    private bool CheckAnyNoteKey()
     {
-        // 检查是否有可用的麦克风设备
-        if (Microphone.devices.Length > 0)
-        {
-            microphoneName = Microphone.devices[0];
-            Debug.Log($"找到麦克风设备: {microphoneName}");
-            
-            // 创建麦克风音频源
-            GameObject micObject = new GameObject("MicrophoneInput");
-            micObject.transform.SetParent(transform);
-            microphoneSource = micObject.AddComponent<AudioSource>();
-            
-            // 配置麦克风音频源
-            microphoneSource.loop = true;
-            microphoneSource.mute = true; // 静音，只用于检测
-            microphoneSource.volume = 0f;
-            
-            StartMicrophoneRecording();
-        }
-        else
-        {
-            Debug.LogWarning("未找到麦克风设备，将使用键盘输入模式");
-        }
+        // 检查所有音符键
+        return Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.F) ||
+               Input.GetKey(KeyCode.J) || Input.GetKey(KeyCode.I) || Input.GetKey(KeyCode.O) || Input.GetKey(KeyCode.Semicolon) ||
+               Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.G) || Input.GetKey(KeyCode.H) ||
+               Input.GetKey(KeyCode.K) || Input.GetKey(KeyCode.L) || Input.GetKey(KeyCode.Quote) ||
+               Input.GetKey(KeyCode.Z) || Input.GetKey(KeyCode.X) || Input.GetKey(KeyCode.C) || Input.GetKey(KeyCode.V) ||
+               Input.GetKey(KeyCode.B) || Input.GetKey(KeyCode.N) || Input.GetKey(KeyCode.M) || Input.GetKey(KeyCode.Comma) ||
+               Input.GetKey(KeyCode.Period) || Input.GetKey(KeyCode.Slash);
     }
-    
-    // 开始麦克风录音
-    private void StartMicrophoneRecording()
-    {
-        if (!string.IsNullOrEmpty(microphoneName))
-        {
-            microphoneClip = Microphone.Start(microphoneName, true, 1, 44100);
-            if (microphoneClip != null)
-            {
-                microphoneSource.clip = microphoneClip;
-                microphoneSource.Play();
-                isMicrophoneActive = true;
-                Debug.Log("麦克风录音已开始");
-            }
-            else
-            {
-                Debug.LogError("无法开始麦克风录音");
-            }
-        }
-    }
-    
-    // 停止麦克风录音
-    
-    
-    // 分析麦克风输入并检测频率
-    private void AnalyzeMicrophoneInput()
-    {
-        if (!isMicrophoneActive || microphoneSource == null || microphoneSource.clip == null)
-            return;
-            
-        // 获取频谱数据
-        microphoneSource.GetSpectrumData(spectrumData, 0, FFTWindow.BlackmanHarris);
-        
-        // 检查音量是否足够
-        float volume = GetAverageVolume();
-        if (volume < minVolumeThreshold)
-        {
-            detectedFrequency = 0f;
-            return;
-        }
-        
-        // 找到最强的频率分量
-        float maxValue = 0f;
-        int maxIndex = 0;
-        
-        for (int i = 1; i < spectrumData.Length / 2; i++)
-        {
-            if (spectrumData[i] > maxValue)
-            {
-                maxValue = spectrumData[i];
-                maxIndex = i;
-            }
-        }
-        
-        // 计算频率
-        if (maxValue > 0.001f) // 阈值检查
-        {
-            float frequency = maxIndex * AudioSettings.outputSampleRate / 2.0f / spectrumData.Length;
-            
-            // 只在音乐频率范围内检测 (80Hz - 2000Hz)
-            if (frequency >= 80f && frequency <= 2000f)
-            {
-                detectedFrequency = frequency;
-                lastDetectionTime = Time.time;
-                Debug.Log($"检测到频率: {frequency:F1}Hz, 音量: {volume:F3}");
-            }
-        }
-    }
-    
-    // 获取平均音量
-    private float GetAverageVolume()
-    {
-        float sum = 0f;
-        for (int i = 0; i < spectrumData.Length; i++)
-        {
-            sum += spectrumData[i];
-        }
-        return sum / spectrumData.Length;
-    }
-    
+
     // 根据检测到的频率计算音符
     private string GetNoteFromFrequency(float frequency)
     {
@@ -279,21 +173,7 @@ ConfigureAudioComponents();
         
         return noteNames[noteIndex] + octave;
     }
-    
-    // 清理资源
-    void OnDestroy()
-    {
-        StopMicrophoneRecording();
-    }
-private void StopMicrophoneRecording()
-    {
-        if (isMicrophoneActive && !string.IsNullOrEmpty(microphoneName))
-        {
-            Microphone.End(microphoneName);
-            isMicrophoneActive = false;
-            Debug.Log("麦克风录音已停止");
-        }
-    }
+
 private void ConfigureAudioComponents()
     {
         if (_lowPassFilter == null || _highPassFilter == null) return;
@@ -341,8 +221,7 @@ void Update()
         
         
         
-        // 分析麦克风输入
-        AnalyzeMicrophoneInput();
+        // 麦克风功能已删除
 // 检测手柄连接状态
         CheckGamepadConnection();
         
@@ -366,7 +245,8 @@ void Update()
         // 检测频率变化是否显著
         bool significantFrequencyChange = Mathf.Abs(newTargetFrequency - _targetFrequency) / _targetFrequency > 0.05f;
 
-        // 检测是否应该播放声音（空格键或手柄按键）
+        // 检测是否应该播放声音（必须按下空格键或手柄按键）
+        bool anyNoteKeyPressed = CheckAnyNoteKey();
         bool shouldPlaySound = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed;
         
         if (shouldPlaySound)
@@ -551,6 +431,7 @@ void Update()
         }
 
         // 主线程更新空格键状态到私有变量
+        bool anyNoteKeyPressed = CheckAnyNoteKey();
         _isSpacePressed = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed;
         _keyStates[KeyCode.Space] = _isSpacePressed;
     }
@@ -593,13 +474,7 @@ void Update()
 
 private float GetBaseFrequency()
     {
-        // 如果有麦克风输入，优先使用音频检测
-        if (isMicrophoneActive && detectedFrequency > 0f && Time.time - lastDetectionTime < 0.5f)
-        {
-            return detectedFrequency;
-        }
-        
-        // 如果没有麦克风输入或检测不到声音，使用键盘/手柄控制作为备用
+        // 使用键盘/手柄控制
         
         // 如果有手柄按键被按下，优先使用手柄控制
         if (_isGamepadConnected && _isGamepadButtonPressed)
@@ -1093,33 +968,27 @@ void CheckNoteForChallenge()
     // 获取当前演奏的音符名称
 private string GetCurrentNoteName()
     {
-        // 如果有麦克风输入，使用检测到的频率
-        if (isMicrophoneActive && detectedFrequency > 0f && Time.time - lastDetectionTime < 0.5f)
+        // 在挑战模式下，优先使用键盘/手柄输入的频率
+        if (ChallengeManager.Instance != null && ChallengeManager.Instance.IsInChallenge())
         {
-            return GetNoteFromFrequency(detectedFrequency);
+            // 使用键盘/手柄输入的频率
+            float baseFrequency = GetBaseFrequency();
+            if (baseFrequency <= 0f) return "";
+            
+            return GetNoteFromFrequency(baseFrequency);
         }
         
-        // 否则使用键盘/手柄输入的频率
-        float baseFrequency = GetBaseFrequency();
-        if (baseFrequency <= 0f) return "";
+        // 使用键盘/手柄输入的频率
+        float baseFrequency2 = GetBaseFrequency();
+        if (baseFrequency2 <= 0f) return "";
         
-        // 根据频率计算音符
-        string[] noteNames = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
-        
-        // A4 = 440Hz 作为参考
-        float a4Frequency = 440f;
-        float noteNumber = 12 * Mathf.Log(baseFrequency / a4Frequency, 2) + 69;
-        
-        int noteIndex = Mathf.RoundToInt(noteNumber) % 12;
-        if (noteIndex < 0) noteIndex += 12;
-        
-        int octave = Mathf.FloorToInt(noteNumber / 12f) - 1;
-        
-        return noteNames[noteIndex] + octave;
+        return GetNoteFromFrequency(baseFrequency2);
     }
     
+
+    
     // 检查是否为正确的音符
-bool IsCorrectNote(string currentNote, string expectedNote)
+    private bool IsCorrectNote(string currentNote, string expectedNote)
     {
         // 提取音符名称的主要部分（去掉八度数字）
         string currentNoteBase = ExtractNoteBase(currentNote);

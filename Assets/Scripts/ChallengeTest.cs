@@ -1,11 +1,70 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class ChallengeTest : MonoBehaviour
 {
+    [Header("UI References")]
+    public Button startChallengeButton;
+    public Text statusText;
+    
+    private ChallengeManager challengeManager;
+    
     void Start()
     {
-        // 等待一秒后开始测试
-        Invoke("TestMusicSheetParserOnly", 1f);
+        challengeManager = FindObjectOfType<ChallengeManager>();
+        
+        if (startChallengeButton != null)
+        {
+            startChallengeButton.onClick.AddListener(StartTestChallenge);
+        }
+        
+        UpdateStatus("准备开始挑战测试");
+    }
+    
+    void Update()
+    {
+        // 测试键盘输入 - 空格键开始新的挑战测试
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            StartTestChallenge();
+        }
+        
+        // T键开始原有的乐谱测试
+        if (Input.GetKeyDown(KeyCode.T))
+        {
+            StartChallengeTest();
+        }
+        
+        // 显示当前状态
+        if (challengeManager != null)
+        {
+            if (challengeManager.IsInChallenge())
+            {
+                UpdateStatus("挑战进行中...");
+            }
+        }
+    }
+    
+    public void StartTestChallenge()
+    {
+        if (challengeManager != null)
+        {
+            UpdateStatus("开始挑战模式测试");
+            challengeManager.StartChallenge();
+        }
+        else
+        {
+            UpdateStatus("错误：找不到ChallengeManager");
+        }
+    }
+    
+    private void UpdateStatus(string message)
+    {
+        if (statusText != null)
+        {
+            statusText.text = $"状态: {message}";
+        }
+        Debug.Log($"ChallengeTest: {message}");
     }
     
     void StartChallengeTest()

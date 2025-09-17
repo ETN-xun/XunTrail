@@ -295,16 +295,16 @@ public class ChallengeSceneManager : MonoBehaviour
         
         if (selectedMusicSheet != null)
         {
-            // 启动挑战
-            if (ChallengeManager.Instance != null)
+            // 将选中的乐谱数据传递给ChallengeDataManager
+            if (ChallengeDataManager.Instance != null)
             {
-                ChallengeManager.Instance.StartChallenge(selectedMusicSheet);
-                Debug.Log("ChallengeSceneManager: 挑战已启动");
+                ChallengeDataManager.Instance.SetSelectedMusicSheet(selectedMusicSheet);
+                Debug.Log("ChallengeSceneManager: 乐谱数据已设置");
             }
-            else
-            {
-                Debug.LogError("ChallengeSceneManager: 未找到ChallengeManager实例");
-            }
+            
+            // 跳转到SampleScene开始挑战
+            Debug.Log("ChallengeSceneManager: 正在跳转到SampleScene");
+            SceneManager.LoadScene("SampleScene");
         }
         else
         {
