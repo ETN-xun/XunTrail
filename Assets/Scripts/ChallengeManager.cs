@@ -36,9 +36,19 @@ public class ChallengeManager : MonoBehaviour
     private List<string> noteSequence = new List<string>();
     private int currentNoteIndex = 0;
         
-    // 玩家演奏记录
+    // 玩家演奏记录 - 按时间记录
     private List<PlayerNote> playerPerformance = new List<PlayerNote>();
     private float challengeStartRealTime; // 挑战实际开始时间
+    
+    // 新增：基于时间的挑战逻辑
+    private List<TimedNote> timedNoteSequence = new List<TimedNote>(); // 带时间信息的音符序列
+    private float currentChallengeTime = 0f; // 当前挑战进行时间
+    private bool challengeCompleted = false; // 挑战是否完成
+    
+    // 实时音符检测
+    private string lastDetectedNote = "";
+    private float lastNoteDetectionTime = 0f;
+    private const float NOTE_DETECTION_INTERVAL = 0.1f; // 每0.1秒检测一次音符
     
     [System.Serializable]
     public class PlayerNote
@@ -47,11 +57,28 @@ public class ChallengeManager : MonoBehaviour
         public float timestamp; // 相对于挑战开始的时间
         public float duration;
         
-        public PlayerNote(string note, float time, float dur = 0.5f)
+        public PlayerNote(string note, float time, float dur = 0.1f)
         {
             noteName = note;
             timestamp = time;
             duration = dur;
+        }
+    }
+    
+    [System.Serializable]
+    public class TimedNote
+    {
+        public string noteName;
+        public float startTime; // 音符开始时间（秒）
+        public float duration; // 音符持续时间（秒）
+        public float endTime; // 音符结束时间（秒）
+        
+        public TimedNote(string note, float start, float dur)
+        {
+            noteName = note;
+            startTime = start;
+            duration = dur;
+            endTime = start + dur;
         }
     }
 private MusicSheet currentMusicSheet; // 当前使用的乐谱
@@ -340,8 +367,22 @@ private MusicSheet currentMusicSheet; // 当前使用的乐谱
         }
         else if (isInChallenge)
         {
+            UpdateChallengeTime();
+            ProcessRealtimeNoteDetection();
             UpdateChallengeUI();
-            CheckChallengeTimeout();
+            CheckChallengeCompletion();
+        }
+    }
+    
+    private void UpdateChallengeTime()
+    {
+        currentChallengeTime = Time.time - challengeStartRealTime;
+        
+        // 检查挑战是否完成
+        if (!challengeCompleted && currentChallengeTime >= currentChallengeDuration)
+        {
+            challengeCompleted = true;
+            CalculateFinalScore();
         }
     }
     
@@ -352,8 +393,8 @@ public void StartChallenge(MusicSheet musicSheet)
         // 根据乐谱设置挑战时长
         if (musicSheet != null && musicSheet.totalDuration > 0)
         {
-            currentChallengeDuration = musicSheet.totalDuration + 5f; // 额外给5秒缓冲时间
-            Debug.Log($"使用乐谱时长: {musicSheet.totalDuration:F2}秒，挑战时长: {currentChallengeDuration:F2}秒");
+            currentChallengeDuration = musicSheet.totalDuration;
+            Debug.Log($"使用乐谱时长: {musicSheet.totalDuration:F2}秒");
         }
         else
         {
@@ -361,21 +402,23 @@ public void StartChallenge(MusicSheet musicSheet)
             Debug.Log($"使用默认挑战时长: {currentChallengeDuration:F2}秒");
         }
         
-        // 如果提供了乐谱，使用乐谱中的音符；否则生成随机音符
+        // 生成带时间信息的音符序列
         if (musicSheet != null && musicSheet.notes != null && musicSheet.notes.Count > 0)
         {
-            GenerateNoteSequenceFromSheet(musicSheet);
+            GenerateTimedNoteSequenceFromSheet(musicSheet);
         }
         else
         {
-            GenerateNoteSequence();
+            GenerateTimedNoteSequence();
         }
         
-        // 设置总音符数量
-        totalNotesCount = noteSequence.Count;
+        // 重置挑战状态
+        totalNotesCount = timedNoteSequence.Count;
         playedNotesCount = 0;
         currentNoteIndex = 0;
         currentScore = 0;
+        currentChallengeTime = 0f;
+        challengeCompleted = false;
         
         // 初始化玩家演奏记录
         playerPerformance.Clear();
@@ -450,6 +493,7 @@ private void EndCountdown()
     {
         isInChallenge = false;
         isCountingDown = false;
+        challengeCompleted = true;
         
         if (challengeUI != null)
             challengeUI.SetActive(false);
@@ -462,7 +506,18 @@ private void EndCountdown()
         if (upcomingNotesText != null)
             upcomingNotesText.text = "";
             
-        Debug.Log($"挑战结束！最终得分: {currentScore}");
+        // 计算并显示最终得分
+        float similarity = CalculatePerformanceSimilarity();
+        Debug.Log($"挑战结束！最终得分: {similarity:F1}%");
+        
+        // 重置状态
+        currentNoteIndex = 0;
+        currentChallengeTime = 0f;
+        playerPerformance.Clear();
+        noteSequence.Clear();
+        timedNoteSequence.Clear();
+        
+        // 音调生成器会在没有按键时自动停止
     }
     
     public string GetCurrentExpectedNote()
@@ -473,37 +528,40 @@ private void EndCountdown()
         return noteSequence[currentNoteIndex];
     }
     
+    public string GetCurrentExpectedNoteByTime()
+    {
+        if (!isInChallenge || timedNoteSequence.Count == 0)
+            return "";
+            
+        // 根据当前时间找到应该演奏的音符
+        foreach (var timedNote in timedNoteSequence)
+        {
+            if (currentChallengeTime >= timedNote.startTime && currentChallengeTime < timedNote.endTime)
+            {
+                return timedNote.noteName;
+            }
+        }
+        
+        return ""; // 当前时间没有音符
+    }
+    
 public void OnNoteDetected(string detectedNote)
     {
-        if (!isInChallenge || isCountingDown) return;
+        if (!isInChallenge || isCountingDown || challengeCompleted) return;
         
-        // 记录玩家演奏的音符
+        // 实时记录玩家演奏的音符
         float currentTime = Time.time - challengeStartRealTime;
-        PlayerNote playerNote = new PlayerNote(detectedNote, currentTime);
-        playerPerformance.Add(playerNote);
         
-        Debug.Log($"记录玩家演奏: {detectedNote} 在时间 {currentTime:F2}s");
-        
-        // 检查是否与当前期望音符匹配
-        string expectedNote = GetCurrentExpectedNote();
-        
-        if (IsCorrectNote(detectedNote, expectedNote))
+        // 避免重复记录相同的音符（在短时间内）
+        if (detectedNote != lastDetectedNote || (currentTime - lastNoteDetectionTime) > NOTE_DETECTION_INTERVAL)
         {
-            currentScore++;
-            Debug.Log($"正确！检测到: {detectedNote}, 期望: {expectedNote}");
-        }
-        else
-        {
-            Debug.Log($"错误！检测到: {detectedNote}, 期望: {expectedNote}");
-        }
-        
-        currentNoteIndex++;
-        playedNotesCount++;
-        
-        // 检查是否所有音符都演奏完毕
-        if (currentNoteIndex >= noteSequence.Count)
-        {
-            CalculateSimilarityAndEndChallenge();
+            PlayerNote playerNote = new PlayerNote(detectedNote, currentTime, NOTE_DETECTION_INTERVAL);
+            playerPerformance.Add(playerNote);
+            
+            lastDetectedNote = detectedNote;
+            lastNoteDetectionTime = currentTime;
+            
+            Debug.Log($"记录玩家演奏: {detectedNote} 在时间 {currentTime:F2}s");
         }
     }
     
@@ -523,6 +581,61 @@ public void OnNoteDetected(string detectedNote)
         Debug.Log($"新的音符序列: {string.Join(", ", noteSequence)}");
     }
 
+    private void GenerateTimedNoteSequenceFromSheet(MusicSheet musicSheet)
+    {
+        timedNoteSequence.Clear();
+        noteSequence.Clear(); // 保持兼容性
+        
+        float currentTime = 0f;
+        float beatDuration = 60f / musicSheet.bpm; // 每拍的时长（秒）
+        
+        for (int i = 0; i < musicSheet.notes.Count; i++)
+        {
+            var note = musicSheet.notes[i];
+            float noteDuration = beatDuration * note.duration; // 音符实际持续时间
+            
+            if (!note.isRest && !string.IsNullOrEmpty(note.noteName))
+            {
+                TimedNote timedNote = new TimedNote(note.noteName, currentTime, noteDuration);
+                timedNoteSequence.Add(timedNote);
+                noteSequence.Add(note.noteName); // 保持兼容性
+            }
+            
+            currentTime += noteDuration;
+        }
+        
+        Debug.Log($"从乐谱生成的带时间音符序列: {timedNoteSequence.Count}个音符，总时长: {currentTime:F2}秒");
+        foreach (var timedNote in timedNoteSequence)
+        {
+            Debug.Log($"音符: {timedNote.noteName}, 开始: {timedNote.startTime:F2}s, 持续: {timedNote.duration:F2}s");
+        }
+    }
+    
+    private void GenerateTimedNoteSequence()
+    {
+        timedNoteSequence.Clear();
+        noteSequence.Clear(); // 保持兼容性
+        
+        float currentTime = 0f;
+        float defaultNoteDuration = 1f; // 默认每个音符1秒
+        
+        // 生成5个随机音符
+        for (int i = 0; i < 5; i++)
+        {
+            string randomNote = notes[Random.Range(0, notes.Length)];
+            int randomOctave = Random.Range(3, 6); // 3-5八度范围
+            string noteWithOctave = randomNote + randomOctave.ToString();
+            
+            TimedNote timedNote = new TimedNote(noteWithOctave, currentTime, defaultNoteDuration);
+            timedNoteSequence.Add(timedNote);
+            noteSequence.Add(noteWithOctave); // 保持兼容性
+            
+            currentTime += defaultNoteDuration;
+        }
+        
+        Debug.Log($"生成的随机带时间音符序列: {string.Join(", ", noteSequence)}");
+    }
+    
     private void GenerateNoteSequenceFromSheet(MusicSheet musicSheet)
     {
         noteSequence.Clear();
@@ -564,41 +677,104 @@ public void OnNoteDetected(string detectedNote)
     private void UpdateChallengeUI()
     {
         if (scoreText != null)
-            scoreText.text = $"得分: {currentScore}/{targetScore}";
+        {
+            if (challengeCompleted)
+            {
+                scoreText.text = $"最终得分: {currentScore:F1}%";
+            }
+            else
+            {
+                scoreText.text = $"演奏中...";
+            }
+        }
             
         if (targetNoteText != null)
         {
-            currentTargetNote = GetCurrentExpectedNote();
-            targetNoteText.text = $"目标音符: {currentTargetNote}";
+            string currentExpectedNote = GetCurrentExpectedNoteByTime();
+            if (!string.IsNullOrEmpty(currentExpectedNote))
+            {
+                int currentKey = GetCurrentKey();
+                string solfegeName = ConvertToSolfege(currentExpectedNote, currentKey);
+                targetNoteText.text = $"目标音符: {currentExpectedNote} ({solfegeName})";
+            }
+            else
+            {
+                targetNoteText.text = "当前无音符";
+            }
         }
         
         if (timeText != null)
         {
-            float remainingTime = currentChallengeDuration - (Time.time - challengeStartTime);
+            float remainingTime = currentChallengeDuration - currentChallengeTime;
             remainingTime = Mathf.Max(0, remainingTime);
             timeText.text = $"剩余时间: {remainingTime:F1}s";
         }
         
-        // 显示当前进度
+        // 显示时间进度
         if (progressText != null)
         {
-            progressText.text = $"进度: {playedNotesCount}/{totalNotesCount}";
+            float progressPercent = (currentChallengeTime / currentChallengeDuration) * 100f;
+            progressPercent = Mathf.Min(100f, progressPercent);
+            progressText.text = $"进度: {progressPercent:F1}%";
         }
         
-        // 更新进度条
-        if (progressSlider != null && totalNotesCount > 0)
+        // 更新进度条（基于时间）
+        if (progressSlider != null)
         {
-            progressSlider.value = (float)playedNotesCount / totalNotesCount;
+            progressSlider.value = currentChallengeTime / currentChallengeDuration;
         }
         
-        // 显示下三个音符
+        // 显示即将到来的音符
         if (upcomingNotesText != null)
         {
-            string upcomingNotes = GetUpcomingNotes(3);
-            upcomingNotesText.text = $"下三个音符: {upcomingNotes}";
+            string upcomingNotes = GetUpcomingNotesByTime(3);
+            upcomingNotesText.text = upcomingNotes;
         }
     }
 
+    private string GetUpcomingNotesByTime(int count)
+    {
+        if (timedNoteSequence.Count == 0)
+            return "无即将到来的音符";
+            
+        List<string> upcomingNoteNames = new List<string>();
+        List<string> upcomingSolfegeNames = new List<string>();
+        List<float> upcomingTimes = new List<float>();
+        
+        int currentKey = GetCurrentKey();
+        int foundCount = 0;
+        
+        // 找到即将到来的音符
+        foreach (var timedNote in timedNoteSequence)
+        {
+            if (timedNote.startTime > currentChallengeTime && foundCount < count)
+            {
+                upcomingNoteNames.Add(timedNote.noteName);
+                upcomingTimes.Add(timedNote.startTime);
+                
+                // 转换为简谱音名
+                string solfegeName = ConvertToSolfege(timedNote.noteName, currentKey);
+                upcomingSolfegeNames.Add(solfegeName);
+                
+                foundCount++;
+            }
+        }
+        
+        if (upcomingNoteNames.Count == 0)
+            return "无即将到来的音符";
+        
+        // 构建显示格式
+        string result = "即将到来的音符：\n";
+        for (int i = 0; i < upcomingNoteNames.Count; i++)
+        {
+            float timeUntil = upcomingTimes[i] - currentChallengeTime;
+            result += $"{upcomingNoteNames[i]}({upcomingSolfegeNames[i]}) {timeUntil:F1}s后";
+            if (i < upcomingNoteNames.Count - 1) result += " | ";
+        }
+        
+        return result;
+    }
+    
     private string GetUpcomingNotes(int count)
     {
         List<string> upcomingNoteNames = new List<string>();
@@ -833,53 +1009,112 @@ private void CalculateSimilarityAndEndChallenge()
         
     private float CalculatePerformanceSimilarity()
     {
-        if (currentMusicSheet == null || currentMusicSheet.notes == null || currentMusicSheet.notes.Count == 0)
+        if (timedNoteSequence.Count == 0)
+            return 0f;
+
+        float totalMatchTime = 0f;
+        float totalExpectedTime = 0f;
+
+        // 计算每个音符的匹配时间
+        foreach (var timedNote in timedNoteSequence)
         {
-            // 如果没有乐谱，只基于正确音符数量计算
-            return totalNotesCount > 0 ? (float)currentScore / totalNotesCount * 100f : 0f;
+            float noteDuration = timedNote.duration;
+            totalExpectedTime += noteDuration;
+            
+            // 计算在这个音符时间段内，玩家演奏正确的时间
+            float matchTime = CalculateMatchTimeForNote(timedNote);
+            totalMatchTime += matchTime;
         }
+
+        // 计算相似度百分比
+        if (totalExpectedTime <= 0f)
+            return 0f;
+            
+        float similarity = (totalMatchTime / totalExpectedTime) * 100f;
+        return Mathf.Clamp(similarity, 0f, 100f);
+    }
+    
+    private float CalculateMatchTimeForNote(TimedNote timedNote)
+    {
+        float matchTime = 0f;
         
-        float totalScore = 0f;
-        float maxScore = 0f;
-        
-        // 计算时间窗口内的音符匹配度
-        float beatDuration = 60f / currentMusicSheet.bpm;
-        
-        for (int i = 0; i < currentMusicSheet.notes.Count && i < noteSequence.Count; i++)
+        // 遍历演奏记录，找到在这个音符时间段内的记录
+        foreach (var record in playerPerformance)
         {
-            Note expectedNote = currentMusicSheet.notes[i];
-            float expectedTime = i * beatDuration * expectedNote.duration;
+            float recordStartTime = record.timestamp;
+            float recordEndTime = record.timestamp + record.duration;
             
-            // 在时间窗口内查找最匹配的玩家音符
-            float timeWindow = beatDuration * 0.5f; // 允许半拍的误差
-            PlayerNote bestMatch = null;
-            float bestTimeDiff = float.MaxValue;
+            // 计算记录与音符时间段的重叠部分
+            float overlapStart = Mathf.Max(recordStartTime, timedNote.startTime);
+            float overlapEnd = Mathf.Min(recordEndTime, timedNote.endTime);
             
-            foreach (PlayerNote playerNote in playerPerformance)
+            if (overlapStart < overlapEnd)
             {
-                float timeDiff = Mathf.Abs(playerNote.timestamp - expectedTime);
-                if (timeDiff <= timeWindow && timeDiff < bestTimeDiff)
+                float overlapDuration = overlapEnd - overlapStart;
+                
+                // 如果演奏的音符正确，则计入匹配时间
+                if (IsNoteMatch(timedNote.noteName, record.noteName))
                 {
-                    bestTimeDiff = timeDiff;
-                    bestMatch = playerNote;
+                    matchTime += overlapDuration;
                 }
             }
-            
-            maxScore += 1f;
-            
-            if (bestMatch != null)
-            {
-                // 音符匹配度 (0-0.7)
-                float noteScore = IsCorrectNote(bestMatch.noteName, ConvertNoteToString(expectedNote)) ? 0.7f : 0f;
-                
-                // 时间准确度 (0-0.3)
-                float timeScore = 0.3f * (1f - (bestTimeDiff / timeWindow));
-                
-                totalScore += noteScore + timeScore;
-            }
         }
         
-        return maxScore > 0 ? (totalScore / maxScore) * 100f : 0f;
+        // 确保匹配时间不超过音符的总时长
+        return Mathf.Min(matchTime, timedNote.duration);
+    }
+    
+    // 检查两个音符是否匹配
+    private bool IsNoteMatch(string expectedNote, string playedNote)
+    {
+        if (string.IsNullOrEmpty(expectedNote) || string.IsNullOrEmpty(playedNote))
+            return false;
+            
+        // 提取音符的基础名称（去掉八度信息）
+        string expectedBase = ExtractNoteBase(expectedNote);
+        string playedBase = ExtractNoteBase(playedNote);
+        
+        // 比较基础音符名称（忽略大小写）
+        return string.Equals(expectedBase, playedBase, System.StringComparison.OrdinalIgnoreCase);
+    }
+    
+    private void ProcessRealtimeNoteDetection()
+    {
+        // 实时处理音符检测，这里可以添加更复杂的逻辑
+        // 目前主要通过OnNoteDetected方法来处理检测到的音符
+        
+        // 可以在这里添加音符检测的额外处理逻辑
+        // 比如音符持续时间的计算、音符质量评估等
+    }
+    
+    private void CheckChallengeCompletion()
+    {
+        if (challengeCompleted || !isInChallenge)
+            return;
+            
+        // 检查挑战是否超时
+        if (currentChallengeTime >= currentChallengeDuration)
+        {
+            challengeCompleted = true;
+            CalculateFinalScore();
+        }
+    }
+    
+    private void CalculateFinalScore()
+    {
+        // 计算基于时间和音符匹配的相似度
+        float similarity = CalculatePerformanceSimilarity();
+        
+        Debug.Log($"演奏完毕！相似度: {similarity:F1}%");
+        
+        // 显示最终得分
+        if (scoreText != null)
+        {
+            scoreText.text = $"最终得分: {similarity:F1}%";
+        }
+        
+        // 等待3秒后退出挑战
+        Invoke("ExitChallenge", 3f);
     }
     
     private void CheckChallengeTimeout()
