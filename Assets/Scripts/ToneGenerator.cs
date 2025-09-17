@@ -1017,24 +1017,12 @@ void CheckNoteForChallenge()
         if (string.IsNullOrEmpty(currentNote))
             return;
             
-        // 获取期望的音符
-        string expectedNote = ChallengeManager.Instance.GetCurrentExpectedNote();
-        if (string.IsNullOrEmpty(expectedNote))
-            return;
-            
-        Debug.Log($"正在检测音符: 当前={currentNote}, 期望={expectedNote}, 音量={_gain:F2}");
+        Debug.Log($"正在检测音符: 当前={currentNote}, 音量={_gain:F2}");
         
-        // 检查音符是否匹配
-        if (IsCorrectNote(currentNote, expectedNote))
-        {
-            lastNoteTime = Time.time;
-            ChallengeManager.Instance.OnNoteDetected(currentNote);
-            Debug.Log($"检测到正确音符: {currentNote} 匹配 {expectedNote}");
-        }
-        else
-        {
-            Debug.Log($"音符不匹配: {currentNote} != {expectedNote}");
-        }
+        // 记录所有演奏的音符，不管是否正确
+        lastNoteTime = Time.time;
+        ChallengeManager.Instance.OnNoteDetected(currentNote);
+        Debug.Log($"记录演奏音符: {currentNote}");
     }
     
     // 获取当前演奏的音符名称

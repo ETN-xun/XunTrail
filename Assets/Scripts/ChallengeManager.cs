@@ -1015,7 +1015,7 @@ private void CalculateSimilarityAndEndChallenge()
         return 0; // 默认C调
     }
         
-    private float CalculatePerformanceSimilarity()
+private float CalculatePerformanceSimilarity()
     {
         Debug.Log($"=== 开始计算评分相似度 ===");
         Debug.Log($"timedNoteSequence数量: {timedNoteSequence.Count}");
@@ -1027,16 +1027,10 @@ private void CalculateSimilarityAndEndChallenge()
             return 0f;
         }
 
-        if (playerPerformance.Count == 0)
-        {
-            Debug.Log("playerPerformance为空，返回0分");
-            return 0f;
-        }
+        float totalCorrectTime = 0f;  // 所有音符的正确演奏时间总和
+        float totalExpectedTime = 0f; // 所有音符的期望时间总和
 
-        float totalMatchTime = 0f;
-        float totalExpectedTime = 0f;
-
-        // 计算每个音符的匹配时间
+        // 计算每个音符的正确演奏时间占比
         for (int i = 0; i < timedNoteSequence.Count; i++)
         {
             var timedNote = timedNoteSequence[i];
@@ -1046,13 +1040,14 @@ private void CalculateSimilarityAndEndChallenge()
             Debug.Log($"处理音符 {i+1}: {timedNote.noteName}, 开始时间: {timedNote.startTime:F2}s, 持续时间: {timedNote.duration:F2}s");
             
             // 计算在这个音符时间段内，玩家演奏正确的时间
-            float matchTime = CalculateMatchTimeForNote(timedNote);
-            totalMatchTime += matchTime;
+            float correctTime = CalculateCorrectTimeForNote(timedNote);
+            totalCorrectTime += correctTime;
             
-            Debug.Log($"音符 {timedNote.noteName} 匹配时间: {matchTime:F2}s / {noteDuration:F2}s");
+            float correctPercentage = noteDuration > 0 ? (correctTime / noteDuration) * 100f : 0f;
+            Debug.Log($"音符 {timedNote.noteName} 正确演奏时间: {correctTime:F2}s / {noteDuration:F2}s ({correctPercentage:F1}%)");
         }
 
-        Debug.Log($"总匹配时间: {totalMatchTime:F2}s");
+        Debug.Log($"总正确演奏时间: {totalCorrectTime:F2}s");
         Debug.Log($"总期望时间: {totalExpectedTime:F2}s");
 
         // 计算相似度百分比
@@ -1062,7 +1057,7 @@ private void CalculateSimilarityAndEndChallenge()
             return 0f;
         }
             
-        float similarity = (totalMatchTime / totalExpectedTime) * 100f;
+        float similarity = (totalCorrectTime / totalExpectedTime) * 100f;
         Debug.Log($"计算得出相似度: {similarity:F2}%");
         
         float finalScore = Mathf.Clamp(similarity, 0f, 100f);
@@ -1072,12 +1067,12 @@ private void CalculateSimilarityAndEndChallenge()
         return finalScore;
     }
     
-    private float CalculateMatchTimeForNote(TimedNote timedNote)
+private float CalculateCorrectTimeForNote(TimedNote timedNote)
     {
-        float matchTime = 0f;
+        float correctTime = 0f;
         int matchingRecords = 0;
         
-        Debug.Log($"  计算音符 {timedNote.noteName} 的匹配时间 (时间段: {timedNote.startTime:F2}s - {timedNote.endTime:F2}s)");
+        Debug.Log($"  计算音符 {timedNote.noteName} 的正确演奏时间 (时间段: {timedNote.startTime:F2}s - {timedNote.endTime:F2}s)");
         
         // 遍历演奏记录，找到在这个音符时间段内的记录
         foreach (var record in playerPerformance)
@@ -1095,12 +1090,12 @@ private void CalculateSimilarityAndEndChallenge()
                 
                 Debug.Log($"    检查演奏记录: {record.noteName} (时间: {recordStartTime:F2}s - {recordEndTime:F2}s), 重叠时长: {overlapDuration:F2}s");
                 
-                // 如果演奏的音符正确，则计入匹配时间
+                // 如果演奏的音符正确，则计入正确时间
                 if (IsNoteMatch(timedNote.noteName, record.noteName))
                 {
-                    matchTime += overlapDuration;
+                    correctTime += overlapDuration;
                     matchingRecords++;
-                    Debug.Log($"    ✓ 音符匹配！累计匹配时间: {matchTime:F2}s");
+                    Debug.Log($"    ✓ 音符匹配！累计正确时间: {correctTime:F2}s");
                 }
                 else
                 {
@@ -1109,16 +1104,16 @@ private void CalculateSimilarityAndEndChallenge()
             }
         }
         
-        Debug.Log($"  音符 {timedNote.noteName} 总匹配时间: {matchTime:F2}s, 匹配记录数: {matchingRecords}");
+        Debug.Log($"  音符 {timedNote.noteName} 总正确时间: {correctTime:F2}s, 匹配记录数: {matchingRecords}");
         
-        // 确保匹配时间不超过音符的总时长
-        float finalMatchTime = Mathf.Min(matchTime, timedNote.duration);
-        if (finalMatchTime != matchTime)
+        // 确保正确时间不超过音符的总时长
+        float finalCorrectTime = Mathf.Min(correctTime, timedNote.duration);
+        if (finalCorrectTime != correctTime)
         {
-            Debug.Log($"  匹配时间被限制为音符时长: {finalMatchTime:F2}s");
+            Debug.Log($"  正确时间被限制为音符时长: {finalCorrectTime:F2}s");
         }
         
-        return finalMatchTime;
+        return finalCorrectTime;
     }
     
     // 检查两个音符是否匹配
