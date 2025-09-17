@@ -1,13 +1,24 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 public class SampleSceneManager : MonoBehaviour
 {
+    [Header("UI References")]
+    public GameObject challengeUI;
+    public Text progressText;
+    public Text upcomingNotesText;
+    public Text scoreText;
+    public Slider progressSlider;
+    
     void Start()
     {
         Debug.Log("SampleSceneManager: SampleScene已加载");
+        
+        // 查找并设置UI引用
+        FindUIElements();
         
         // 检查是否有来自ChallengeDataManager的选中乐谱
         if (ChallengeDataManager.Instance != null)
@@ -21,11 +32,103 @@ public class SampleSceneManager : MonoBehaviour
             else
             {
                 Debug.Log("SampleSceneManager: 没有选中的乐谱，进入自由模式");
+                SetupFreeMode();
             }
         }
         else
         {
             Debug.Log("SampleSceneManager: ChallengeDataManager不存在，进入自由模式");
+            SetupFreeMode();
+        }
+    }
+    
+    private void FindUIElements()
+    {
+        // 查找ChallengeUI对象（包括非激活的）
+        if (challengeUI == null)
+        {
+            GameObject[] allObjects = Resources.FindObjectsOfTypeAll<GameObject>();
+            foreach (GameObject obj in allObjects)
+            {
+                if (obj.name == "ChallengeUI" && obj.scene.name != null)
+                {
+                    challengeUI = obj;
+                    Debug.Log("SampleSceneManager: 自动找到ChallengeUI对象");
+                    break;
+                }
+            }
+        }
+        
+        // 查找UI文本组件
+        Text[] allTexts = Resources.FindObjectsOfTypeAll<Text>();
+        foreach (Text text in allTexts)
+        {
+            if (text.gameObject.scene.name != null) // 确保是场景中的对象
+            {
+                switch (text.name)
+                {
+                    case "ProgressText":
+                        if (progressText == null)
+                        {
+                            progressText = text;
+                            Debug.Log("SampleSceneManager: 找到ProgressText");
+                        }
+                        break;
+                    case "UpcomingNotesText":
+                        if (upcomingNotesText == null)
+                        {
+                            upcomingNotesText = text;
+                            Debug.Log("SampleSceneManager: 找到UpcomingNotesText");
+                        }
+                        break;
+                    case "ScoreText":
+                        if (scoreText == null)
+                        {
+                            scoreText = text;
+                            Debug.Log("SampleSceneManager: 找到ScoreText");
+                        }
+                        break;
+                }
+            }
+        }
+        
+        // 查找进度条
+        if (progressSlider == null)
+        {
+            progressSlider = FindObjectOfType<Slider>();
+            if (progressSlider != null)
+            {
+                Debug.Log("SampleSceneManager: 找到ProgressSlider");
+            }
+        }
+    }
+    
+    private void SetupFreeMode()
+    {
+        // 在自由模式下显示基本UI
+        if (challengeUI != null)
+        {
+            challengeUI.SetActive(true);
+        }
+        
+        if (progressText != null)
+        {
+            progressText.text = "自由演奏模式";
+        }
+        
+        if (upcomingNotesText != null)
+        {
+            upcomingNotesText.text = "请自由演奏";
+        }
+        
+        if (scoreText != null)
+        {
+            scoreText.text = "得分: --";
+        }
+        
+        if (progressSlider != null)
+        {
+            progressSlider.value = 0;
         }
     }
     
