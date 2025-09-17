@@ -59,6 +59,9 @@ private MusicSheet currentMusicSheet; // 当前使用的乐谱
     // 音符列表
     private readonly string[] notes = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
     
+    // ToneGenerator引用，用于获取当前调号
+    private ToneGenerator toneGenerator;
+    
     private void Awake()
     {
         if (Instance == null)
@@ -129,6 +132,20 @@ private MusicSheet currentMusicSheet; // 当前使用的乐谱
     {
         // 自动查找UI元素
         FindUIElements();
+        
+        // 查找ToneGenerator引用
+        if (toneGenerator == null)
+        {
+            toneGenerator = FindObjectOfType<ToneGenerator>();
+            if (toneGenerator != null)
+            {
+                Debug.Log("自动找到ToneGenerator对象");
+            }
+            else
+            {
+                Debug.LogWarning("未找到ToneGenerator对象");
+            }
+        }
         
         // 确保ChallengeUI被激活，这样UI元素才能正常显示
         if (challengeUI != null)
@@ -494,11 +511,13 @@ public void OnNoteDetected(string detectedNote)
     {
         noteSequence.Clear();
         
-        // 生成5个随机音符
+        // 生成5个随机音符，包含八度信息
         for (int i = 0; i < 5; i++)
         {
             string randomNote = notes[Random.Range(0, notes.Length)];
-            noteSequence.Add(randomNote);
+            int randomOctave = Random.Range(3, 6); // 3-5八度范围
+            string noteWithOctave = randomNote + randomOctave.ToString();
+            noteSequence.Add(noteWithOctave);
         }
         
         Debug.Log($"新的音符序列: {string.Join(", ", noteSequence)}");
@@ -513,9 +532,9 @@ public void OnNoteDetected(string detectedNote)
         for (int i = 0; i < maxNotes; i++)
         {
             var note = musicSheet.notes[i];
-            // 将音符转换为简单的字符串格式
-            string noteString = ConvertNoteToString(note);
-            if (!string.IsNullOrEmpty(noteString))
+            // 保持完整的音符名称（包含八度）
+            string noteString = note.noteName;
+            if (!string.IsNullOrEmpty(noteString) && !note.isRest)
             {
                 noteSequence.Add(noteString);
             }
@@ -525,7 +544,9 @@ public void OnNoteDetected(string detectedNote)
         while (noteSequence.Count < 5)
         {
             string randomNote = notes[Random.Range(0, notes.Length)];
-            noteSequence.Add(randomNote);
+            int randomOctave = Random.Range(3, 6); // 3-5八度范围
+            string noteWithOctave = randomNote + randomOctave.ToString();
+            noteSequence.Add(noteWithOctave);
         }
         
         Debug.Log($"从乐谱生成的音符序列: {string.Join(", ", noteSequence)}");
@@ -533,28 +554,11 @@ public void OnNoteDetected(string detectedNote)
     
     private string ConvertNoteToString(Note note)
     {
-        // 将Note对象转换为简单的音符字符串
+        // 将Note对象转换为完整的音符字符串（保持八度信息）
         if (note == null || note.isRest || string.IsNullOrEmpty(note.noteName))
             return "";
             
-        // 提取音符名称的主要部分（去掉八度数字）
-        string noteName = note.noteName;
-        
-        // 如果包含数字（八度），只保留字母部分
-        string result = "";
-        foreach (char c in noteName)
-        {
-            if (char.IsLetter(c) || c == '#')
-            {
-                result += c;
-            }
-            else
-            {
-                break; // 遇到数字就停止
-            }
-        }
-        
-        return result;
+        return note.noteName; // 直接返回完整的音符名称
     }
 
     private void UpdateChallengeUI()
@@ -597,14 +601,29 @@ public void OnNoteDetected(string detectedNote)
 
     private string GetUpcomingNotes(int count)
     {
-        List<string> upcoming = new List<string>();
+        List<string> upcomingNoteNames = new List<string>();
+        List<string> upcomingSolfegeNames = new List<string>();
+        
+        int currentKey = GetCurrentKey();
         
         for (int i = 0; i < count && (currentNoteIndex + i) < noteSequence.Count; i++)
         {
-            upcoming.Add(noteSequence[currentNoteIndex + i]);
+            string noteName = noteSequence[currentNoteIndex + i];
+            
+            // 保持原有的八度信息显示
+            upcomingNoteNames.Add(noteName);
+            
+            // 转换为简谱音名（包含八度标记）
+            string solfegeName = ConvertToSolfege(noteName, currentKey);
+            upcomingSolfegeNames.Add(solfegeName);
         }
         
-        return string.Join(", ", upcoming);
+        // 构建多行显示格式
+        string result = "即将到来的音符：\n";
+        result += string.Join(" ", upcomingNoteNames) + "\n";
+        result += string.Join(" ", upcomingSolfegeNames);
+        
+        return result;
     }
     
 private void CalculateSimilarityAndEndChallenge()
@@ -662,6 +681,110 @@ private void CalculateSimilarityAndEndChallenge()
         return result;
     }
     
+    // 将音符转换为简谱音名
+    private string ConvertToSolfege(string noteName, int key)
+    {
+        if (string.IsNullOrEmpty(noteName))
+            return "";
+            
+        // 提取音符基础名称和八度
+        string noteBase = ExtractNoteBase(noteName);
+        int octave = ExtractOctave(noteName);
+        
+        // 音符到半音数的映射（C=0, C#=1, D=2, ...）
+        Dictionary<string, int> noteToSemitone = new Dictionary<string, int>
+        {
+            {"C", 0}, {"C#", 1}, {"D", 2}, {"D#", 3}, {"E", 4}, {"F", 5},
+            {"F#", 6}, {"G", 7}, {"G#", 8}, {"A", 9}, {"A#", 10}, {"B", 11}
+        };
+        
+        if (!noteToSemitone.ContainsKey(noteBase))
+            return noteBase;
+            
+        // 获取音符的半音数
+        int noteSemitone = noteToSemitone[noteBase];
+        
+        // 根据调号计算主音的半音数
+        // key范围：-4到7，对应A♭(-4)到G(7)
+        int tonicSemitone = GetTonicSemitone(key);
+        
+        // 计算相对于主音的半音数
+        int relativeSemitone = (noteSemitone - tonicSemitone + 12) % 12;
+        
+        // 简谱音名映射
+        string[] solfegeNames = {"1", "♯1", "2", "♯2", "3", "4", "♯4", "5", "♯5", "6", "♯6", "7"};
+        
+        string solfegeName = solfegeNames[relativeSemitone];
+        
+        // 添加八度标记
+        string octavePrefix = GetOctavePrefix(octave);
+        
+        return octavePrefix + solfegeName;
+    }
+    
+    // 提取八度信息
+    private int ExtractOctave(string noteName)
+    {
+        if (string.IsNullOrEmpty(noteName))
+            return 4; // 默认中音区
+            
+        // 从音符名称中提取数字部分
+        for (int i = 0; i < noteName.Length; i++)
+        {
+            if (char.IsDigit(noteName[i]))
+            {
+                if (int.TryParse(noteName.Substring(i), out int octave))
+                {
+                    return octave;
+                }
+            }
+        }
+        
+        return 4; // 默认中音区
+    }
+    
+    // 根据调号获取主音的半音数
+    private int GetTonicSemitone(int key)
+    {
+        // 根据ToneGenerator中的映射关系
+        return key switch
+        {
+            -4 => 8,  // A♭
+            -3 => 9,  // A
+            -2 => 10, // B♭
+            -1 => 11, // B
+            0 => 0,   // C
+            1 => 1,   // D♭
+            2 => 2,   // D
+            3 => 3,   // E♭
+            4 => 4,   // E
+            5 => 5,   // F
+            6 => 6,   // F♯
+            7 => 7,   // G
+            _ => 0    // 默认C
+        };
+    }
+    
+    // 根据八度获取前缀
+    private string GetOctavePrefix(int octave)
+    {
+        return octave switch
+        {
+            <= 3 => "低音",
+            4 => "中音",
+            >= 5 => "高音"
+        };
+    }
+
+    // 获取当前调号
+    private int GetCurrentKey()
+    {
+        if (toneGenerator != null)
+        {
+            return toneGenerator.key; // 直接访问public key变量
+        }
+        return 0; // 默认C调
+    }
         
     private float CalculatePerformanceSimilarity()
     {
