@@ -616,6 +616,7 @@ private void EndCountdown()
         if (expectedNote != currentExpectedNote)
         {
             currentExpectedNote = expectedNote;
+            currentTargetNote = expectedNote; // 同步更新目标音符
             Debug.Log($"当前期望音符更新为: {currentExpectedNote}");
         }
     }
@@ -629,10 +630,49 @@ private void EndCountdown()
         // 获取当前正在演奏的音符
         string currentPlayingNote = GetCurrentPlayingNote();
         
-        // 如果当前演奏的音符与期望音符匹配，则累计时长
-        if (IsNoteMatch(currentExpectedNote, currentPlayingNote))
+        bool shouldAddScore = false;
+        
+        // 检查是否应该加分
+        if (IsRestNote(currentExpectedNote))
+        {
+            // 如果当前期望音符是休止符，玩家不演奏就应该加分
+            if (string.IsNullOrEmpty(currentPlayingNote))
+            {
+                shouldAddScore = true;
+                Debug.Log($"休止符正确处理: 期望休止符，玩家未演奏 -> 加分");
+            }
+            else
+            {
+                Debug.Log($"休止符错误处理: 期望休止符，但玩家演奏了 '{currentPlayingNote}' -> 不加分");
+            }
+        }
+        else
+        {
+            // 如果当前期望音符不是休止符，只有演奏正确音符才加分
+            if (!string.IsNullOrEmpty(currentPlayingNote) && IsNoteMatch(currentExpectedNote, currentPlayingNote))
+            {
+                shouldAddScore = true;
+                Debug.Log($"音符正确演奏: 期望 '{currentExpectedNote}', 演奏 '{currentPlayingNote}' -> 加分");
+            }
+            else if (string.IsNullOrEmpty(currentPlayingNote))
+            {
+                Debug.Log($"音符未演奏: 期望 '{currentExpectedNote}', 玩家未演奏 -> 不加分");
+            }
+            else
+            {
+                Debug.Log($"音符演奏错误: 期望 '{currentExpectedNote}', 演奏 '{currentPlayingNote}' -> 不加分");
+            }
+        }
+        
+        if (shouldAddScore)
         {
             correctPlayTime += Time.deltaTime;
+            // 如果这是一个新的正确音符，增加计数
+            if (!string.IsNullOrEmpty(currentPlayingNote) && !IsRestNote(currentExpectedNote))
+            {
+                // 这里可以添加逻辑来避免重复计数同一个音符
+                // 暂时简单处理，每次正确演奏都计数
+            }
             // Debug.Log($"正确演奏累计时长: {correctPlayTime:F2}s / {totalMusicDuration:F2}s");
         }
     }
@@ -652,10 +692,15 @@ private void EndCountdown()
     private float CalculateNewScore()
     {
         if (totalMusicDuration <= 0f)
+        {
+            currentScore = 0;
             return 0f;
+        }
             
         float scorePercentage = (correctPlayTime / totalMusicDuration) * 100f;
-        return Mathf.Clamp(scorePercentage, 0f, 100f);
+        float clampedScore = Mathf.Clamp(scorePercentage, 0f, 100f);
+        currentScore = Mathf.RoundToInt(clampedScore);
+        return clampedScore;
     }
     
     private void HideChallengeUI()
@@ -1065,6 +1110,17 @@ private void CalculateSimilarityAndEndChallenge()
         return result;
     }
     
+    // 检查是否为休止符
+    private bool IsRestNote(string noteName)
+    {
+        if (string.IsNullOrEmpty(noteName))
+            return false;
+            
+        // 常见的休止符表示方法
+        string noteBase = ExtractNoteBase(noteName).ToLower();
+        return noteBase == "rest" || noteBase == "r" || noteBase == "pause" || noteBase == "0";
+    }
+    
     // 将音符转换为简谱音名
     private string ConvertToSolfege(string noteName, int key)
     {
@@ -1274,33 +1330,84 @@ private float CalculateCorrectTimeForNote(TimedNote timedNote)
         
         Debug.Log($"  计算音符 {timedNote.noteName} 的正确演奏时间 (时间段: {timedNote.startTime:F2}s - {timedNote.endTime:F2}s)");
         
-        // 遍历演奏记录，找到在这个音符时间段内的记录
-        foreach (var record in playerPerformance)
+        // 检查是否为休止符
+        if (IsRestNote(timedNote.noteName))
         {
-            float recordStartTime = record.timestamp;
-            float recordEndTime = record.timestamp + record.duration;
+            Debug.Log($"    当前音符是休止符: {timedNote.noteName}");
             
-            // 计算记录与音符时间段的重叠部分
-            float overlapStart = Mathf.Max(recordStartTime, timedNote.startTime);
-            float overlapEnd = Mathf.Min(recordEndTime, timedNote.endTime);
+            // 对于休止符，检查玩家是否在这个时间段内没有演奏
+            bool hasPlayedDuringRest = false;
+            float totalPlayedTime = 0f;
             
-            if (overlapStart < overlapEnd)
+            foreach (var record in playerPerformance)
             {
-                float overlapDuration = overlapEnd - overlapStart;
+                float recordStartTime = record.timestamp;
+                float recordEndTime = record.timestamp + record.duration;
                 
-                Debug.Log($"    检查演奏记录: {record.noteName} (时间: {recordStartTime:F2}s - {recordEndTime:F2}s), 重叠时长: {overlapDuration:F2}s");
+                // 计算记录与休止符时间段的重叠部分
+                float overlapStart = Mathf.Max(recordStartTime, timedNote.startTime);
+                float overlapEnd = Mathf.Min(recordEndTime, timedNote.endTime);
                 
-                // 如果演奏的音符正确，则计入正确时间
-                if (IsNoteMatch(timedNote.noteName, record.noteName))
+                if (overlapStart < overlapEnd)
                 {
-                    correctTime += overlapDuration;
-                    matchingRecords++;
-                    Debug.Log($"    ✓ 音符匹配！累计正确时间: {correctTime:F2}s");
+                    float overlapDuration = overlapEnd - overlapStart;
+                    hasPlayedDuringRest = true;
+                    totalPlayedTime += overlapDuration;
+                    Debug.Log($"    ✗ 休止符期间有演奏: {record.noteName} (重叠时长: {overlapDuration:F2}s)");
                 }
-                else
+            }
+            
+            if (!hasPlayedDuringRest)
+            {
+                // 休止符期间没有演奏，给满分
+                correctTime = timedNote.duration;
+                Debug.Log($"    ✓ 休止符正确处理: 期间无演奏，获得满分 {correctTime:F2}s");
+            }
+            else
+            {
+                // 休止符期间有演奏，扣除演奏的时间
+                correctTime = Mathf.Max(0f, timedNote.duration - totalPlayedTime);
+                Debug.Log($"    ✗ 休止符错误处理: 期间有演奏 {totalPlayedTime:F2}s，得分 {correctTime:F2}s");
+            }
+        }
+        else
+        {
+            // 对于普通音符，检查玩家是否演奏了正确的音符
+            Debug.Log($"    当前音符是普通音符: {timedNote.noteName}");
+            
+            foreach (var record in playerPerformance)
+            {
+                float recordStartTime = record.timestamp;
+                float recordEndTime = record.timestamp + record.duration;
+                
+                // 计算记录与音符时间段的重叠部分
+                float overlapStart = Mathf.Max(recordStartTime, timedNote.startTime);
+                float overlapEnd = Mathf.Min(recordEndTime, timedNote.endTime);
+                
+                if (overlapStart < overlapEnd)
                 {
-                    Debug.Log($"    ✗ 音符不匹配: 期望 {timedNote.noteName}, 实际 {record.noteName}");
+                    float overlapDuration = overlapEnd - overlapStart;
+                    
+                    Debug.Log($"    检查演奏记录: {record.noteName} (时间: {recordStartTime:F2}s - {recordEndTime:F2}s), 重叠时长: {overlapDuration:F2}s");
+                    
+                    // 只有演奏的音符正确才计入正确时间
+                    if (IsNoteMatch(timedNote.noteName, record.noteName))
+                    {
+                        correctTime += overlapDuration;
+                        matchingRecords++;
+                        Debug.Log($"    ✓ 音符匹配！累计正确时间: {correctTime:F2}s");
+                    }
+                    else
+                    {
+                        Debug.Log($"    ✗ 音符不匹配: 期望 {timedNote.noteName}, 实际 {record.noteName}");
+                    }
                 }
+            }
+            
+            // 对于普通音符，如果没有任何演奏记录，得分为0
+            if (matchingRecords == 0)
+            {
+                Debug.Log($"    ✗ 普通音符期间无正确演奏，得分为0");
             }
         }
         
@@ -1418,5 +1525,23 @@ private float CalculateCorrectTimeForNote(TimedNote timedNote)
             Debug.Log($"挑战超时！用时: {elapsedTime:F2}秒，限制: {currentChallengeDuration:F2}秒");
             ExitChallenge();
         }
+    }
+    
+    // 获取当前分数（百分比）
+    public float GetCurrentScore()
+    {
+        return CalculateNewScore();
+    }
+    
+    // 获取当前目标音符
+    public string GetCurrentTargetNote()
+    {
+        return currentTargetNote;
+    }
+    
+    // 获取已演奏音符数量
+    public int GetPlayedNotesCount()
+    {
+        return playedNotesCount;
     }
 }
