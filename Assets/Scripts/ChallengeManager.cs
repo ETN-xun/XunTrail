@@ -210,12 +210,14 @@ private MusicSheet currentMusicSheet; // 当前使用的乐谱
         if (scoreText == null)
         {
             Text[] allTexts = Resources.FindObjectsOfTypeAll<Text>();
+            Debug.Log($"正在搜索ScoreText，找到 {allTexts.Length} 个Text组件");
             foreach (Text text in allTexts)
             {
+                Debug.Log($"检查Text组件: {text.name}, 场景: {text.gameObject.scene.name}");
                 if (text.name == "ScoreText" && text.gameObject.scene.name != null)
                 {
                     scoreText = text;
-                    Debug.Log("自动找到ScoreText对象");
+                    Debug.Log($"自动找到ScoreText对象: {text.name}, 当前文本: {text.text}");
                     break;
                 }
             }
@@ -223,6 +225,10 @@ private MusicSheet currentMusicSheet; // 当前使用的乐谱
             {
                 Debug.LogWarning("未找到ScoreText对象");
             }
+        }
+        else
+        {
+            Debug.Log($"ScoreText已存在: {scoreText.name}, 当前文本: {scoreText.text}");
         }
         
         // 查找UpcomingNotesText作为targetNoteText
@@ -390,6 +396,22 @@ public void StartChallenge(MusicSheet musicSheet)
     {
         currentMusicSheet = musicSheet;
         
+        // 验证UI元素是否正确初始化
+        if (scoreText == null)
+        {
+            Debug.LogWarning("挑战开始时scoreText为null，尝试重新查找");
+            FindUIElements(); // 重新查找UI元素
+        }
+        
+        if (scoreText != null)
+        {
+            Debug.Log($"挑战开始时scoreText状态正常: {scoreText.name}");
+        }
+        else
+        {
+            Debug.LogError("挑战开始时scoreText仍然为null！");
+        }
+        
         // 根据乐谱设置挑战时长
         if (musicSheet != null && musicSheet.totalDuration > 0)
         {
@@ -495,10 +517,22 @@ private void EndCountdown()
         isCountingDown = false;
         challengeCompleted = true;
         
-        if (challengeUI != null)
-            challengeUI.SetActive(false);
-            
-        // 清理UI显示
+        // 计算并显示最终得分
+        float similarity = CalculatePerformanceSimilarity();
+        Debug.Log($"挑战结束！最终得分: {similarity:F1}%");
+        
+        // 更新UI显示最终得分
+        if (scoreText != null)
+        {
+            scoreText.text = $"最终得分: {similarity:F1}%";
+            Debug.Log($"UI得分已更新: {similarity:F1}%");
+        }
+        else
+        {
+            Debug.LogWarning("scoreText为null，无法更新UI得分显示");
+        }
+        
+        // 清理其他UI显示，但保留得分显示
         if (countdownText != null)
             countdownText.text = "";
         if (progressText != null)
@@ -506,9 +540,8 @@ private void EndCountdown()
         if (upcomingNotesText != null)
             upcomingNotesText.text = "";
             
-        // 计算并显示最终得分
-        float similarity = CalculatePerformanceSimilarity();
-        Debug.Log($"挑战结束！最终得分: {similarity:F1}%");
+        // 延迟3秒后隐藏UI，让用户能看到最终得分
+        Invoke("HideChallengeUI", 3f);
         
         // 重置状态
         currentNoteIndex = 0;
@@ -518,6 +551,12 @@ private void EndCountdown()
         timedNoteSequence.Clear();
         
         // 音调生成器会在没有按键时自动停止
+    }
+    
+    private void HideChallengeUI()
+    {
+        if (challengeUI != null)
+            challengeUI.SetActive(false);
     }
     
     public string GetCurrentExpectedNote()
@@ -821,10 +860,15 @@ private void CalculateSimilarityAndEndChallenge()
         if (scoreText != null)
         {
             scoreText.text = $"最终得分: {similarity:F1}% ({currentScore}/{totalNotesCount})";
+            Debug.Log($"UI得分已更新: {similarity:F1}%");
+        }
+        else
+        {
+            Debug.LogWarning("scoreText为null，无法更新UI得分显示");
         }
         
-        // 等待3秒后退出挑战
-        Invoke("ExitChallenge", 3f);
+        // 等待3秒后退出挑战（不重新计算得分）
+        Invoke("ExitChallengeWithoutRecalculation", 3f);
     }
 
     public bool IsInChallenge()
@@ -1170,10 +1214,42 @@ private float CalculateCorrectTimeForNote(TimedNote timedNote)
         if (scoreText != null)
         {
             scoreText.text = $"最终得分: {similarity:F1}%";
+            Debug.Log($"UI得分已更新: {similarity:F1}%");
+        }
+        else
+        {
+            Debug.LogWarning("scoreText为null，无法更新UI得分显示");
         }
         
-        // 等待3秒后退出挑战
-        Invoke("ExitChallenge", 3f);
+        // 等待3秒后退出挑战（不重新计算得分）
+        Invoke("ExitChallengeWithoutRecalculation", 3f);
+    }
+    
+    private void ExitChallengeWithoutRecalculation()
+    {
+        isInChallenge = false;
+        isCountingDown = false;
+        challengeCompleted = true;
+        
+        // 清理其他UI显示，但保留得分显示
+        if (countdownText != null)
+            countdownText.text = "";
+        if (progressText != null)
+            progressText.text = "";
+        if (upcomingNotesText != null)
+            upcomingNotesText.text = "";
+            
+        // 延迟3秒后隐藏UI，让用户能看到最终得分
+        Invoke("HideChallengeUI", 3f);
+        
+        // 重置状态
+        currentNoteIndex = 0;
+        currentChallengeTime = 0f;
+        playerPerformance.Clear();
+        noteSequence.Clear();
+        timedNoteSequence.Clear();
+        
+        // 音调生成器会在没有按键时自动停止
     }
     
     private void CheckChallengeTimeout()
