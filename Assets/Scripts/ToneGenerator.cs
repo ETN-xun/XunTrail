@@ -474,49 +474,117 @@ void Update()
 
 private float GetBaseFrequency()
     {
-        // 使用键盘/手柄控制
+        // 首先获取简谱音名对应的半音数（相对于C调的1）
+        int solfegeNote = -1; // -1表示没有按键
         
         // 如果有手柄按键被按下，优先使用手柄控制
         if (_isGamepadConnected && _isGamepadButtonPressed)
         {
-            // 根据按下的按键获取基础频率
+            // 根据按下的按键获取简谱音名
             if (_buttonAPressed)
-                return FREQUENCY_LOW_6;
+                solfegeNote = 6; // 低音6
             else if (_buttonBPressed)
-                return FREQUENCY_MID_2;
+                solfegeNote = 2; // 中音2
             else if (_buttonXPressed)
-                return FREQUENCY_MID_5;
+                solfegeNote = 5; // 中音5
             else if (_buttonYPressed)
-                return FREQUENCY_HIGH_1;
+                solfegeNote = 1; // 高音1
+        }
+        else
+        {
+            // 如果没有手柄输入，使用键盘控制
+            if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
+                KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+                solfegeNote = 5; // 低音5
+            else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, 
+                KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+                solfegeNote = 6; // 低音6
+            else if (CheckKeys(KeyCode.E, KeyCode.F, 
+                KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+                solfegeNote = 7; // 低音7
+            else if (CheckKeys(KeyCode.F, 
+                KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+                solfegeNote = 1; // 中音1
+            else if (CheckKeys(
+                KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+                solfegeNote = 2; // 中音2
+            else if (CheckKeys(
+                KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+                solfegeNote = 3; // 中音3
+            else if (CheckKeys(
+                KeyCode.O, KeyCode.Semicolon))
+                solfegeNote = 4; // 中音4
+            else if (CheckKeys(
+                KeyCode.Semicolon))
+                solfegeNote = 5; // 中音5
         }
         
-        // 如果没有手柄输入，使用键盘控制
-        if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
-            return 196f;
-        else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
-            return 207.65f;
-        else if (CheckKeys(KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
-            return 220f;
-        else if (CheckKeys(KeyCode.F, 
-            KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
-            return 233.08f;
-        else if (CheckKeys(
-            KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
-            return 246.94f;
-        else if (CheckKeys(
-            KeyCode.I, KeyCode.O, KeyCode.Semicolon))
-            return 261.63f;
-        else if (CheckKeys(
-            KeyCode.O, KeyCode.Semicolon))
-            return 277.18f;
-        else if (CheckKeys(
-            KeyCode.Semicolon))
-            return 293.66f;
+        if (solfegeNote == -1)
+            return 0f; // 没有按键时返回0，表示没有演奏
         
-        return 0f; // 没有按键时返回0，表示没有演奏
+        // 根据调号和简谱音名计算实际频率
+        return GetFrequencyFromSolfege(solfegeNote);
+    }
+    
+    // 根据简谱音名和调号计算实际频率
+    private float GetFrequencyFromSolfege(int solfegeNote)
+    {
+        // 获取调号主音频率
+        float tonicFrequency = GetTonicFrequency(key);
+        
+        // 计算相对于调号主音的半音数
+        int semitoneOffset = 0;
+        
+        // 简谱音名到半音数的映射（相对于调号主音1）：
+        // 1=0, 2=2, 3=4, 4=5, 5=7, 6=9, 7=11
+        // 低音区需要减去12个半音，高音区需要加上12个半音
+        
+        // 基础半音数映射
+        int baseSemitone = 0;
+        switch (solfegeNote % 10) // 取个位数，去掉八度信息
+        {
+            case 1: baseSemitone = 0; break;  // 1
+            case 2: baseSemitone = 2; break;  // 2
+            case 3: baseSemitone = 4; break;  // 3
+            case 4: baseSemitone = 5; break;  // 4
+            case 5: baseSemitone = 7; break;  // 5
+            case 6: baseSemitone = 9; break;  // 6
+            case 7: baseSemitone = 11; break; // 7
+            default: baseSemitone = 0; break;
+        }
+        
+        // 根据具体的简谱音名确定八度
+        if (solfegeNote == 5) // 低音5 (键盘第一个按键组合)
+        {
+            semitoneOffset = baseSemitone - 12; // 低音区
+        }
+        else if (solfegeNote == 6) // 低音6 (键盘第二个按键组合 或 手柄A键)
+        {
+            semitoneOffset = baseSemitone - 12; // 低音区
+        }
+        else if (solfegeNote == 7) // 低音7 (键盘第三个按键组合)
+        {
+            semitoneOffset = baseSemitone - 12; // 低音区
+        }
+        else if (solfegeNote == 1) // 中音1 或 高音1
+        {
+            // 检查是否是手柄Y键（高音1）
+            if (_isGamepadConnected && _buttonYPressed)
+                semitoneOffset = baseSemitone + 12; // 高音区
+            else
+                semitoneOffset = baseSemitone; // 中音区
+        }
+        else if (solfegeNote >= 2 && solfegeNote <= 5) // 中音2-5
+        {
+            semitoneOffset = baseSemitone; // 中音区
+        }
+        else
+        {
+            semitoneOffset = baseSemitone; // 默认中音区
+        }
+        
+        // 计算最终频率
+        return tonicFrequency * Mathf.Pow(2f, semitoneOffset / 12f);
     }
 
     private float GetFrequency()
@@ -1043,10 +1111,10 @@ void CheckNoteForChallenge()
             if (baseFrequency <= 0f)
             {
                 // 没有按孔但在吹气，演奏中音6 (440Hz)
-                return GetNoteName(440f);
+                return GetNoteFromFrequency(440f);
             }
             
-            return GetNoteName(baseFrequency);
+            return GetNoteFromFrequency(baseFrequency);
         }
         
         // 非挑战模式下也应用相同逻辑
@@ -1060,10 +1128,10 @@ void CheckNoteForChallenge()
         if (baseFrequency2 <= 0f)
         {
             // 没有按孔但在吹气，演奏中音6 (440Hz)
-            return GetNoteName(440f);
+            return GetNoteFromFrequency(440f);
         }
         
-        return GetNoteName(baseFrequency2);
+        return GetNoteFromFrequency(baseFrequency2);
     }
     
 

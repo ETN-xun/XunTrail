@@ -1133,7 +1133,7 @@ private void CalculateSimilarityAndEndChallenge()
         return noteBase == "rest" || noteBase == "r" || noteBase == "pause" || noteBase == "0";
     }
     
-    // 将音符转换为简谱音名
+    // 将音符转换为五线谱音名（保持原有格式）
     private string ConvertToSolfege(string noteName, int key)
     {
         if (string.IsNullOrEmpty(noteName))
@@ -1145,39 +1145,9 @@ private void CalculateSimilarityAndEndChallenge()
             return "休止符";
         }
             
-        // 提取音符基础名称和八度
-        string noteBase = ExtractNoteBase(noteName);
-        int octave = ExtractOctave(noteName);
-        
-        // 音符到半音数的映射（C=0, C#=1, D=2, ...）
-        Dictionary<string, int> noteToSemitone = new Dictionary<string, int>
-        {
-            {"C", 0}, {"C#", 1}, {"D", 2}, {"D#", 3}, {"E", 4}, {"F", 5},
-            {"F#", 6}, {"G", 7}, {"G#", 8}, {"A", 9}, {"A#", 10}, {"B", 11}
-        };
-        
-        if (!noteToSemitone.ContainsKey(noteBase))
-            return noteBase;
-            
-        // 获取音符的半音数
-        int noteSemitone = noteToSemitone[noteBase];
-        
-        // 根据调号计算主音的半音数
-        // key范围：-4到7，对应A♭(-4)到G(7)
-        int tonicSemitone = GetTonicSemitone(key);
-        
-        // 计算相对于主音的半音数
-        int relativeSemitone = (noteSemitone - tonicSemitone + 12) % 12;
-        
-        // 简谱音名映射
-        string[] solfegeNames = {"1", "♯1", "2", "♯2", "3", "4", "♯4", "5", "♯5", "6", "♯6", "7"};
-        
-        string solfegeName = solfegeNames[relativeSemitone];
-        
-        // 添加八度标记 - 根据当前调号判断音高区域
-        string octavePrefix = GetOctavePrefixByKey(noteName, key);
-        
-        return octavePrefix + solfegeName;
+        // 直接返回五线谱音名，不进行简谱转换
+        // 这样可以确保与乐谱上的音名完全匹配
+        return noteName;
     }
     
     // 提取八度信息
