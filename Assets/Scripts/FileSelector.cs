@@ -70,10 +70,12 @@ public class FileSelector : MonoBehaviour
             {
                 return ofn.lpstrFile;
             }
+            return null;
         }
         catch (Exception e)
         {
             Debug.LogError("文件选择对话框错误: " + e.Message);
+            return null;
         }
         #else
         // 其他平台的备用方案
