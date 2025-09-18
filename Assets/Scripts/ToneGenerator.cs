@@ -1031,18 +1031,39 @@ void CheckNoteForChallenge()
         // 在挑战模式下，优先使用键盘/手柄输入的频率
         if (ChallengeManager.Instance != null && ChallengeManager.Instance.IsInChallenge())
         {
-            // 使用键盘/手柄输入的频率
-            float baseFrequency = GetBaseFrequency();
-            if (baseFrequency <= 0f) return "";
+            // 首先检查是否在"吹气"（按下空格键或手柄按键）
+            bool isBlowing = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed;
+            if (!isBlowing)
+            {
+                return ""; // 没有吹气就没有演奏
+            }
             
-            return GetNoteFromFrequency(baseFrequency);
+            // 如果在吹气，获取按孔对应的频率
+            float baseFrequency = GetBaseFrequency();
+            if (baseFrequency <= 0f)
+            {
+                // 没有按孔但在吹气，演奏中音6 (440Hz)
+                return GetNoteName(440f);
+            }
+            
+            return GetNoteName(baseFrequency);
         }
         
-        // 使用键盘/手柄输入的频率
-        float baseFrequency2 = GetBaseFrequency();
-        if (baseFrequency2 <= 0f) return "";
+        // 非挑战模式下也应用相同逻辑
+        bool isBlowing2 = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed;
+        if (!isBlowing2)
+        {
+            return ""; // 没有吹气就没有演奏
+        }
         
-        return GetNoteFromFrequency(baseFrequency2);
+        float baseFrequency2 = GetBaseFrequency();
+        if (baseFrequency2 <= 0f)
+        {
+            // 没有按孔但在吹气，演奏中音6 (440Hz)
+            return GetNoteName(440f);
+        }
+        
+        return GetNoteName(baseFrequency2);
     }
     
 
