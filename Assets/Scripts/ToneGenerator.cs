@@ -485,9 +485,9 @@ private float GetBaseFrequency()
             else if (_buttonBPressed)
                 solfegeNote = 2; // 中音2
             else if (_buttonXPressed)
-                solfegeNote = 5; // 中音5
+                solfegeNote = 25; // 中音5
             else if (_buttonYPressed)
-                solfegeNote = 1; // 高音1
+                solfegeNote = 31; // 高音1
         }
         else
         {
@@ -932,9 +932,9 @@ private string GetNoteName(float frequency)
 
     private void UpdateUI(float frequency)
     {
-        // 更新音符名称 - 使用固定音名（不随调号变化）
+        // 更新音符名称 - 使用基于按键组合的固定音名（不随调号变化）
         if (text != null)
-            text.text = GetFixedNoteName(frequency);
+            text.text = GetFixedNoteNameFromKeys();
         
         // 更新八度显示
         if (OttaText != null)
@@ -957,6 +957,149 @@ private string GetNoteName(float frequency)
             // 在调号文本后添加手柄按键信息
             keyText.text += $" (手柄: {buttonName})";
         }
+    }
+
+    // 获取基于按键组合的固定音名（不受调号影响）
+    private string GetFixedNoteNameFromKeys()
+    {
+        if (_isGamepadConnected && _isGamepadButtonPressed)
+        {
+            // 获取基础音名对应的简谱数字
+            int baseSolfegeNote = -1;
+            if (_buttonAPressed)
+                baseSolfegeNote = 6; // 低音6
+            else if (_buttonBPressed)
+                baseSolfegeNote = 2; // 中音2
+            else if (_buttonXPressed)
+                baseSolfegeNote = 5; // 中音5 (实际显示)
+            else if (_buttonYPressed)
+                baseSolfegeNote = 1; // 高音1 (实际显示)
+            
+            if (baseSolfegeNote != -1)
+            {
+                // 计算摇杆调整的半音偏移
+                int semitoneOffset = 0;
+                
+                if (Mathf.Abs(_gamepadLeftStickX) > 0.5f || Mathf.Abs(_gamepadLeftStickY) > 0.5f)
+                {
+                    // 左右摇杆：降低/升高半音
+                    if (_gamepadLeftStickX < -0.5f)
+                        semitoneOffset -= 1; // 降低半音
+                    else if (_gamepadLeftStickX > 0.5f)
+                        semitoneOffset += 1; // 升高半音
+                        
+                    // 上下摇杆：升高/降低全音
+                    if (_gamepadLeftStickY > 0.5f)
+                        semitoneOffset += 2; // 升高全音
+                    else if (_gamepadLeftStickY < -0.5f)
+                        semitoneOffset -= 2; // 降低全音
+                }
+                
+                // 根据调整后的音名返回显示文本
+                return GetSolfegeNameWithOffset(baseSolfegeNote, semitoneOffset);
+            }
+        }
+        else
+        {
+            // 键盘按键组合对应的固定音名（以C调为基准）
+            if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
+                KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+                return "低音5"; // AWEFJIO；
+            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
+                KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.P))
+                return "低音5♯"; // AWEFJIOP
+            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
+                KeyCode.J, KeyCode.I, KeyCode.O))
+                return "低音6"; // AWEFJIO
+            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
+                KeyCode.J, KeyCode.O, KeyCode.Semicolon))
+                return "低音6♯"; // AWEFJO；
+            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
+                KeyCode.J, KeyCode.I, KeyCode.Semicolon))
+                return "低音7"; // AWEFJI；
+            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
+                KeyCode.J, KeyCode.I))
+                return "中音1"; // AWEFJI
+            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
+                KeyCode.J, KeyCode.Semicolon))
+                return "中音1♯"; // AWEFJ；
+            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
+                KeyCode.J))
+                return "中音2"; // AWEFJ
+            else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J, 
+                KeyCode.Semicolon))
+                return "中音2♯"; // WEFJ；
+            else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J))
+                return "中音3"; // WEFJ
+            else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I, 
+                KeyCode.O))
+                return "中音4"; // EFJIO
+            else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I))
+                return "中音4♯"; // EFJI
+            else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J))
+                return "中音5"; // EFJ
+            else if (CheckKeys(KeyCode.F, KeyCode.J, KeyCode.I))
+                return "中音5♯"; // FJI
+            else if (CheckKeys(KeyCode.F, KeyCode.J))
+                return "中音6"; // FJ
+            else if (CheckKeys(KeyCode.J, KeyCode.I, KeyCode.O))
+                return "中音6♯"; // JIO
+            else if (CheckKeys(KeyCode.J))
+                return "中音7"; // J
+            else if (!CheckAnyKeys())
+                return "高音1"; // 上述按键都不按
+        }
+        
+        return ""; // 没有按键时返回空字符串
+    }
+    
+    // 根据基础简谱音名和半音偏移计算调整后的音名
+    private string GetSolfegeNameWithOffset(int baseSolfegeNote, int semitoneOffset)
+    {
+        // 获取基础半音位置
+        int baseSemitone = GetBaseSemitoneForGamepadButton(baseSolfegeNote);
+        
+        // 应用半音偏移
+        int finalSemitone = baseSemitone + semitoneOffset;
+        
+        // 将半音位置转换回简谱音名
+        return ConvertSemitoneToSolfegeName(finalSemitone);
+    }
+    
+    // 获取手柄按键对应的基础半音位置
+    private int GetBaseSemitoneForGamepadButton(int solfegeNote)
+    {
+        // 手柄按键映射：
+        // A按键：低音6 = 9半音
+        // B按键：中音2 = 14半音  
+        // X按键：中音5 = 19半音
+        // Y按键：高音1 = 24半音
+        
+        switch (solfegeNote)
+        {
+            case 6: return 9;   // 低音6 (A按键)
+            case 2: return 14;  // 中音2 (B按键) 
+            case 5: return 19;  // 中音5 (X按键)
+            case 1: return 24;  // 高音1 (Y按键)
+            default: return 0;
+        }
+    }
+    
+    // 将半音位置转换为简谱音名显示
+    private string ConvertSemitoneToSolfegeName(int semitone)
+    {
+        // 确保半音在合理范围内
+        if (semitone < 0) semitone = 0;
+        if (semitone > 35) semitone = 35;
+        
+        // 半音到简谱音名的映射
+        string[] solfegeNames = {
+            "低音1", "低音1♯", "低音2", "低音2♯", "低音3", "低音4", "低音4♯", "低音5", "低音5♯", "低音6", "低音6♯", "低音7",
+            "中音1", "中音1♯", "中音2", "中音2♯", "中音3", "中音4", "中音4♯", "中音5", "中音5♯", "中音6", "中音6♯", "中音7",
+            "高音1", "高音1♯", "高音2", "高音2♯", "高音3", "高音4", "高音4♯", "高音5", "高音5♯", "高音6", "高音6♯", "高音7"
+        };
+        
+        return solfegeNames[semitone];
     }
 
     private void UpdateKeyText()
