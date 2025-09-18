@@ -838,41 +838,75 @@ public void OnNoteDetected(string detectedNote)
     private string GetUpcomingNotesByTime(int count)
     {
         if (timedNoteSequence.Count == 0)
-            return "无即将到来的音符";
+            return "无音符";
             
-        List<string> upcomingNoteNames = new List<string>();
-        List<string> upcomingSolfegeNames = new List<string>();
-        List<float> upcomingTimes = new List<float>();
+        List<string> noteNames = new List<string>();
+        List<string> solfegeNames = new List<string>();
+        List<float> noteTimes = new List<float>();
+        List<bool> isCurrentNote = new List<bool>();
         
         int currentKey = GetCurrentKey();
         int foundCount = 0;
         
-        // 找到即将到来的音符
+        // 首先查找当前音符
+        TimedNote currentTimedNote = null;
+        foreach (var timedNote in timedNoteSequence)
+        {
+            if (currentChallengeTime >= timedNote.startTime && currentChallengeTime < timedNote.endTime)
+            {
+                currentTimedNote = timedNote;
+                break;
+            }
+        }
+        
+        // 如果有当前音符，先添加它
+        if (currentTimedNote != null && foundCount < count)
+        {
+            noteNames.Add(currentTimedNote.noteName);
+            noteTimes.Add(currentTimedNote.startTime);
+            isCurrentNote.Add(true);
+            
+            // 转换为简谱音名
+            string solfegeName = ConvertToSolfege(currentTimedNote.noteName, currentKey);
+            solfegeNames.Add(solfegeName);
+            
+            foundCount++;
+        }
+        
+        // 然后找到接下来的音符
         foreach (var timedNote in timedNoteSequence)
         {
             if (timedNote.startTime > currentChallengeTime && foundCount < count)
             {
-                upcomingNoteNames.Add(timedNote.noteName);
-                upcomingTimes.Add(timedNote.startTime);
+                noteNames.Add(timedNote.noteName);
+                noteTimes.Add(timedNote.startTime);
+                isCurrentNote.Add(false);
                 
                 // 转换为简谱音名
                 string solfegeName = ConvertToSolfege(timedNote.noteName, currentKey);
-                upcomingSolfegeNames.Add(solfegeName);
+                solfegeNames.Add(solfegeName);
                 
                 foundCount++;
             }
         }
         
-        if (upcomingNoteNames.Count == 0)
-            return "无即将到来的音符";
+        if (noteNames.Count == 0)
+            return "无音符";
         
         // 构建显示格式
-        string result = "即将到来的音符：\n";
-        for (int i = 0; i < upcomingNoteNames.Count; i++)
+        string result = "音符序列：\n";
+        for (int i = 0; i < noteNames.Count; i++)
         {
-            float timeUntil = upcomingTimes[i] - currentChallengeTime;
-            result += $"{upcomingNoteNames[i]}({upcomingSolfegeNames[i]}) {timeUntil:F1}s后";
-            if (i < upcomingNoteNames.Count - 1) result += " | ";
+            if (isCurrentNote[i])
+            {
+                result += $"{noteNames[i]}({solfegeNames[i]})";
+            }
+            else
+            {
+                float timeUntil = noteTimes[i] - currentChallengeTime;
+                result += $"{noteNames[i]}({solfegeNames[i]}) {timeUntil:F1}s后";
+            }
+            if (i < noteNames.Count - 1) result += " | ";
         }
         
         return result;
