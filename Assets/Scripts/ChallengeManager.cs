@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class ChallengeManager : MonoBehaviour
 {
@@ -103,6 +104,9 @@ private MusicSheet currentMusicSheet; // 当前使用的乐谱
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            
+            // 添加场景加载事件监听器
+            SceneManager.sceneLoaded += OnSceneLoaded;
         }
         
         // 查找CountdownText
@@ -1557,5 +1561,38 @@ private float CalculateCorrectTimeForNote(TimedNote timedNote)
     public int GetPlayedNotesCount()
     {
         return playedNotesCount;
+    }
+    
+    // 场景加载事件处理器
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        Debug.Log($"ChallengeManager: 场景 {scene.name} 已加载，重新查找UI元素");
+        
+        // 清空所有UI引用，强制重新查找
+        challengeUI = null;
+        scoreText = null;
+        targetNoteText = null;
+        timeText = null;
+        countdownText = null;
+        progressText = null;
+        upcomingNotesText = null;
+        progressSlider = null;
+        exitChallengeButton = null;
+        
+        // 重新查找UI元素
+        FindUIElements();
+        
+        // 重新查找其他组件引用
+        toneGenerator = null;
+        sampleSceneManager = null;
+    }
+    
+    // 清理事件监听器
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
     }
 }
