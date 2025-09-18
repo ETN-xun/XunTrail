@@ -921,7 +921,8 @@ private void GenerateTimedNoteSequenceFromSheet(MusicSheet musicSheet)
             {
                 int currentKey = GetCurrentKey();
                 string solfegeName = ConvertToSolfege(currentExpectedNote, currentKey);
-                targetNoteText.text = $"目标音符: {currentExpectedNote} ({solfegeName})";
+                string solfegeNumber = ExtractSolfegeNumber(solfegeName);
+                targetNoteText.text = $"目标音符: {currentExpectedNote} ({solfegeNumber})";
             }
             else
             {
@@ -1029,7 +1030,7 @@ private void GenerateTimedNoteSequenceFromSheet(MusicSheet musicSheet)
                 float timeUntil = noteTimes[i] - currentChallengeTime;
                 result += $"{noteNames[i]}({solfegeNames[i]}) {timeUntil:F1}s后";
             }
-            if (i < noteNames.Count - 1) result += " | ";
+            if (i < noteNames.Count - 1) result += "\n";
         }
         
         return result;
@@ -1133,7 +1134,7 @@ private void CalculateSimilarityAndEndChallenge()
         return noteBase == "rest" || noteBase == "r" || noteBase == "pause" || noteBase == "0";
     }
     
-    // 将音符转换为五线谱音名（保持原有格式）
+    // 将五线谱音名转换为当前调号下的简谱音名
     private string ConvertToSolfege(string noteName, int key)
     {
         if (string.IsNullOrEmpty(noteName))
@@ -1145,9 +1146,134 @@ private void CalculateSimilarityAndEndChallenge()
             return "休止符";
         }
             
-        // 直接返回五线谱音名，不进行简谱转换
-        // 这样可以确保与乐谱上的音名完全匹配
-        return noteName;
+        // 将五线谱音名转换为频率，然后转换为简谱音名
+        float frequency = NoteToFrequency(noteName);
+        if (frequency <= 0f)
+            return noteName; // 如果转换失败，返回原音名
+            
+        // 使用ToneGenerator的逻辑将频率转换为简谱音名
+        return FrequencyToSolfege(frequency, key);
+    }
+    
+    // 将音符名称转换为频率（从MusicSheetParser移植）
+    private float NoteToFrequency(string noteName)
+    {
+        // 音符到半音数的映射（相对于C）
+        Dictionary<char, int> noteToSemitone = new Dictionary<char, int>
+        {
+            {'C', 0}, {'D', 2}, {'E', 4}, {'F', 5}, {'G', 7}, {'A', 9}, {'B', 11}
+        };
+        
+        if (string.IsNullOrEmpty(noteName) || noteName.Length < 2)
+            return 440f; // 默认A4
+            
+        char note = noteName[0];
+        string octaveStr = noteName.Substring(1);
+        
+        // 处理升号
+        int sharpOffset = 0;
+        if (octaveStr.StartsWith("#"))
+        {
+            sharpOffset = 1;
+            octaveStr = octaveStr.Substring(1);
+        }
+        
+        if (!int.TryParse(octaveStr, out int octave))
+            octave = 4; // 默认第4八度
+            
+        if (!noteToSemitone.ContainsKey(note))
+            return 440f; // 默认A4
+            
+        // 计算相对于A4的半音数差
+        int semitoneFromC = noteToSemitone[note] + sharpOffset;
+        int totalSemitones = (octave - 4) * 12 + semitoneFromC - 9; // A4是参考点
+        
+        // A4 = 440Hz，每个半音是2^(1/12)倍频率
+        return 440f * Mathf.Pow(2f, totalSemitones / 12f);
+    }
+    
+    // 将频率转换为简谱音名（从ToneGenerator移植）
+    public static string FrequencyToSolfege(float frequency, int key)
+    {
+        if (frequency <= 0f) return "";
+        
+        // 根据当前调号获取主音的频率（第4八度）
+        float tonicFrequency = GetTonicFrequency(key);
+        
+        // 计算相对于当前调号主音的半音数差
+        float semitonesFromTonic = 12f * Mathf.Log(frequency / tonicFrequency, 2f);
+        int semitones = Mathf.RoundToInt(semitonesFromTonic);
+        
+        // 计算音符在简谱中的位置（1-7）
+        int noteIndex = semitones % 12;
+        if (noteIndex < 0) noteIndex += 12;
+        
+        // 简谱音符映射（相对于调号主音）
+        string[] solfegeNames = { "1", "1♯", "2", "2♯", "3", "4", "4♯", "5", "5♯", "6", "6♯", "7" };
+        
+        // 按照用户要求的逻辑判断音高：
+        // 以调号主音第4八度为基准（如1=F时，中音1=F4）
+        // 低于主音第4八度的为低音，第4八度到第5八度之间为中音，第5八度及以上为高音
+        string prefix;
+        float tonicFrequency5th = tonicFrequency * 2f; // 第5八度的主音频率
+        
+        if (frequency < tonicFrequency) // 低于F4
+        {
+            prefix = "低音";
+        }
+        else if (frequency >= tonicFrequency5th) // F5及以上
+        {
+            prefix = "高音";
+        }
+        else // F4到F5之间（包含F4，不包含F5）
+        {
+            prefix = "中音";
+        }
+        
+        return prefix + solfegeNames[noteIndex];
+    }
+    
+    // 从完整的简谱音名中提取数字部分（如从"中音1"提取"1"）
+    public static string ExtractSolfegeNumber(string fullSolfegeName)
+    {
+        if (string.IsNullOrEmpty(fullSolfegeName)) return "";
+        
+        // 移除前缀（低音、中音、高音）
+        string result = fullSolfegeName;
+        if (result.StartsWith("低音"))
+            result = result.Substring(2);
+        else if (result.StartsWith("中音"))
+            result = result.Substring(2);
+        else if (result.StartsWith("高音"))
+            result = result.Substring(2);
+        
+        return result;
+    }
+    
+    // 根据调号获取主音的频率（第4八度）
+    private static float GetTonicFrequency(int keyValue)
+    {
+        // 调号对应的主音半音数（相对于C）
+        int tonicSemitone = keyValue switch
+        {
+            -4 => 8,  // A♭
+            -3 => 9,  // A
+            -2 => 10, // B♭
+            -1 => 11, // B
+            0 => 0,   // C
+            1 => 1,   // D♭
+            2 => 2,   // D
+            3 => 3,   // E♭
+            4 => 4,   // E
+            5 => 5,   // F
+            6 => 6,   // F♯
+            7 => 7,   // G
+            _ => 0    // 默认C
+        };
+        
+        // C4 = 261.63Hz 作为基准，计算主音频率
+        float c4Frequency = 261.63f;
+        return c4Frequency * Mathf.Pow(2f, tonicSemitone / 12f);
     }
     
     // 提取八度信息
