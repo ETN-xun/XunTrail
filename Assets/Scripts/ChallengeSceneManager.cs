@@ -185,54 +185,31 @@ public class ChallengeSceneManager : MonoBehaviour
                 selectFileText.text = "未选择文件";
         }
         
-        // 如果没有选择外部文件，则从乐谱文件夹加载第一个txt文件
-        LoadFromMusicSheetsFolder();
-    }
-    
-    void LoadFromMusicSheetsFolder()
-    {
-        try
+        // 如果没有选择外部文件，则从StreamingAssets加载
+        if (ChallengeDataManager.Instance != null)
         {
-            // 构建乐谱文件夹路径
-            string musicSheetsPath = Path.Combine(Application.dataPath, "乐谱");
+            var availableSheets = ChallengeDataManager.Instance.availableMusicSheets;
             
-            if (!Directory.Exists(musicSheetsPath))
+            if (availableSheets != null && availableSheets.Count > 0)
             {
-                Debug.LogWarning("ChallengeSceneManager: 乐谱文件夹不存在");
+                // 使用第一个可用的乐谱
+                selectedMusicSheet = availableSheets[0];
+                selectedFilePath = Path.Combine(Application.streamingAssetsPath, selectedMusicSheet.fileName + ".txt");
+                
                 if (selectFileText != null)
-                    selectFileText.text = "未找到乐谱文件夹";
+                    selectFileText.text = $"已选择: {selectedMusicSheet.fileName}";
+                    
+                // 启用开始按钮
+                if (startButton != null)
+                    startButton.interactable = true;
+                    
+                Debug.Log($"ChallengeSceneManager: 从StreamingAssets选择了文件 {selectedMusicSheet.fileName}");
                 return;
             }
-            
-            // 查找txt文件
-            string[] musicFiles = Directory.GetFiles(musicSheetsPath, "*.txt");
-            
-            if (musicFiles.Length > 0)
-            {
-                selectedFilePath = musicFiles[0]; // 选择第一个找到的文件
-                string fileName = Path.GetFileNameWithoutExtension(selectedFilePath);
-                
-                if (selectFileText != null)
-                    selectFileText.text = $"已选择: {fileName}";
-                    
-                // 尝试加载乐谱
-                LoadMusicSheet(selectedFilePath);
-                
-                Debug.Log($"ChallengeSceneManager: 从乐谱文件夹选择了文件 {fileName}");
-            }
-            else
-            {
-                Debug.LogWarning("ChallengeSceneManager: 乐谱文件夹中未找到txt乐谱文件");
-                if (selectFileText != null)
-                    selectFileText.text = "未找到txt乐谱文件";
-            }
         }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"ChallengeSceneManager: 加载乐谱文件夹文件时出错 - {e.Message}");
-            if (selectFileText != null)
-                selectFileText.text = "加载出错";
-        }
+        
+        // 如果ChallengeDataManager不可用，直接查找StreamingAssets中的txt文件
+        LoadFromStreamingAssets();
     }
     
     void LoadFromStreamingAssets()
