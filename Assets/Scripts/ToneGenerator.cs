@@ -1026,7 +1026,7 @@ void CheckNoteForChallenge()
     }
     
     // 获取当前演奏的音符名称
-private string GetCurrentNoteName()
+    public string GetCurrentNoteName()
     {
         // 在挑战模式下，优先使用键盘/手柄输入的频率
         if (ChallengeManager.Instance != null && ChallengeManager.Instance.IsInChallenge())
