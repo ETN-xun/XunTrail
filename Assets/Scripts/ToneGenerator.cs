@@ -516,7 +516,7 @@ private float GetBaseFrequency()
             KeyCode.Semicolon))
             return 293.66f;
         
-        return _currentFrequency; // 返回当前频率作为默认值
+        return 0f; // 没有按键时返回0，表示没有演奏
     }
 
     private float GetFrequency()

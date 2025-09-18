@@ -778,7 +778,7 @@ public void OnNoteDetected(string detectedNote)
         Debug.Log($"新的音符序列: {string.Join(", ", noteSequence)}");
     }
 
-    private void GenerateTimedNoteSequenceFromSheet(MusicSheet musicSheet)
+private void GenerateTimedNoteSequenceFromSheet(MusicSheet musicSheet)
     {
         timedNoteSequence.Clear();
         noteSequence.Clear(); // 保持兼容性
@@ -791,11 +791,17 @@ public void OnNoteDetected(string detectedNote)
             var note = musicSheet.notes[i];
             float noteDuration = beatDuration * note.duration; // 音符实际持续时间
             
-            if (!note.isRest && !string.IsNullOrEmpty(note.noteName))
+            // 修复：包含休止符在内的所有音符都应该被添加到序列中
+            if (!string.IsNullOrEmpty(note.noteName))
             {
                 TimedNote timedNote = new TimedNote(note.noteName, currentTime, noteDuration);
                 timedNoteSequence.Add(timedNote);
-                noteSequence.Add(note.noteName); // 保持兼容性
+                
+                // 只有非休止符才添加到noteSequence（保持兼容性）
+                if (!note.isRest)
+                {
+                    noteSequence.Add(note.noteName);
+                }
             }
             
             currentTime += noteDuration;
@@ -804,7 +810,8 @@ public void OnNoteDetected(string detectedNote)
         Debug.Log($"从乐谱生成的带时间音符序列: {timedNoteSequence.Count}个音符，总时长: {currentTime:F2}秒");
         foreach (var timedNote in timedNoteSequence)
         {
-            Debug.Log($"音符: {timedNote.noteName}, 开始: {timedNote.startTime:F2}s, 持续: {timedNote.duration:F2}s");
+            string noteType = IsRestNote(timedNote.noteName) ? "(休止符)" : "";
+            Debug.Log($"音符: {timedNote.noteName}{noteType}, 开始: {timedNote.startTime:F2}s, 持续: {timedNote.duration:F2}s");
         }
     }
     
@@ -1126,6 +1133,12 @@ private void CalculateSimilarityAndEndChallenge()
     {
         if (string.IsNullOrEmpty(noteName))
             return "";
+            
+        // 检查是否为休止符
+        if (IsRestNote(noteName))
+        {
+            return "休止符";
+        }
             
         // 提取音符基础名称和八度
         string noteBase = ExtractNoteBase(noteName);
