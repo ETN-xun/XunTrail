@@ -1211,18 +1211,17 @@ private void CalculateSimilarityAndEndChallenge()
         // 简谱音符映射（相对于调号主音）
         string[] solfegeNames = { "1", "1♯", "2", "2♯", "3", "4", "4♯", "5", "5♯", "6", "6♯", "7" };
         
-        // 按照用户要求的逻辑判断音高：
-        // 第4八度显示为"中音"，第5八度显示为"高音"
-        // 以调号主音第4八度为基准（如1=F时，中音1=F4）
-        string prefix;
-        
-        // 计算当前音符的绝对八度数（基于C4=第4八度的标准）
-        // C4 = 261.63Hz，计算当前频率相对于C4的八度数
+        // 新的八度判断逻辑：直接基于音名而非频率边界
+        // 计算当前音符相对于C的半音数
         float c4Frequency = 261.63f;
-        float octaveFromC4 = Mathf.Log(frequency / c4Frequency, 2f);
-        int absoluteOctave = 4 + Mathf.FloorToInt(octaveFromC4);
+        float semitonesFromC4 = 12f * Mathf.Log(frequency / c4Frequency, 2f);
+        
+        // 计算绝对八度数（基于标准音名系统）
+        // 使用更精确的计算方法，避免边界问题
+        int absoluteOctave = 4 + Mathf.FloorToInt((semitonesFromC4 + 0.5f) / 12f);
         
         // 根据绝对八度数判断前缀
+        string prefix;
         if (absoluteOctave < 4) // 第3八度及以下
         {
             prefix = "低音";

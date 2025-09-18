@@ -11,6 +11,28 @@ public class OctaveDisplayTest2 : MonoBehaviour
     {
         Debug.Log("=== 开始测试音高显示修复 ===");
         
+        // 测试1=C调号（key=0）下的C4显示
+        int cKey = 0; // C调
+        float c4Frequency = 261.63f; // C4标准频率
+        float c3Frequency = c4Frequency / 2f; // C3
+        float c5Frequency = c4Frequency * 2f; // C5
+        
+        string c3Result = ChallengeManager.FrequencyToSolfege(c3Frequency, cKey);
+        string c4Result = ChallengeManager.FrequencyToSolfege(c4Frequency, cKey);
+        string c5Result = ChallengeManager.FrequencyToSolfege(c5Frequency, cKey);
+        
+        Debug.Log($"C3频率 {c3Frequency:F2}Hz -> {c3Result} (期望: 低音1)");
+        Debug.Log($"C4频率 {c4Frequency:F2}Hz -> {c4Result} (期望: 中音1)");
+        Debug.Log($"C5频率 {c5Frequency:F2}Hz -> {c5Result} (期望: 高音1)");
+        
+        bool c3Correct = c3Result == "低音1";
+        bool c4Correct = c4Result == "中音1";
+        bool c5Correct = c5Result == "高音1";
+        
+        Debug.Log($"C3测试: {(c3Correct ? "通过" : "失败")}");
+        Debug.Log($"C4测试: {(c4Correct ? "通过" : "失败")}");
+        Debug.Log($"C5测试: {(c5Correct ? "通过" : "失败")}");
+        
         // 测试1=F调号（key=5）下的音高显示
         int testKey = 5; // F调
         
@@ -37,7 +59,9 @@ public class OctaveDisplayTest2 : MonoBehaviour
         Debug.Log($"F4测试: {(f4Correct ? "通过" : "失败")}");
         Debug.Log($"F5测试: {(f5Correct ? "通过" : "失败")}");
         
-        if (f3Correct && f4Correct && f5Correct)
+        bool allPassed = c3Correct && c4Correct && c5Correct && f3Correct && f4Correct && f5Correct;
+        
+        if (allPassed)
         {
             Debug.Log("✓ 音高显示修复测试全部通过！");
         }
