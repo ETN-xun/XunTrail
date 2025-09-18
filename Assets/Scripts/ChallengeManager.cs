@@ -1411,7 +1411,7 @@ private float CalculateCorrectTimeForNote(TimedNote timedNote)
         return finalCorrectTime;
     }
     
-    // 检查两个音符是否匹配
+    // 检查两个音符是否匹配（精确匹配，包括八度信息）
     private bool IsNoteMatch(string expectedNote, string playedNote)
     {
         if (string.IsNullOrEmpty(expectedNote) || string.IsNullOrEmpty(playedNote))
@@ -1420,14 +1420,10 @@ private float CalculateCorrectTimeForNote(TimedNote timedNote)
             return false;
         }
             
-        // 提取音符的基础名称（去掉八度信息）
-        string expectedBase = ExtractNoteBase(expectedNote);
-        string playedBase = ExtractNoteBase(playedNote);
+        // 精确比较音符名称（包括八度信息，忽略大小写）
+        bool isMatch = string.Equals(expectedNote, playedNote, System.StringComparison.OrdinalIgnoreCase);
         
-        // 比较基础音符名称（忽略大小写）
-        bool isMatch = string.Equals(expectedBase, playedBase, System.StringComparison.OrdinalIgnoreCase);
-        
-        Debug.Log($"      音符匹配检查: 期望 '{expectedNote}' ({expectedBase}) vs 演奏 '{playedNote}' ({playedBase}) -> {isMatch}");
+        Debug.Log($"      音符匹配检查: 期望 '{expectedNote}' vs 演奏 '{playedNote}' -> {isMatch}");
         
         return isMatch;
     }
