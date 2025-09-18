@@ -1212,20 +1212,26 @@ private void CalculateSimilarityAndEndChallenge()
         string[] solfegeNames = { "1", "1♯", "2", "2♯", "3", "4", "4♯", "5", "5♯", "6", "6♯", "7" };
         
         // 按照用户要求的逻辑判断音高：
+        // 第4八度显示为"中音"，第5八度显示为"高音"
         // 以调号主音第4八度为基准（如1=F时，中音1=F4）
-        // 低于主音第4八度的为低音，第4八度到第5八度之间为中音，第5八度及以上为高音
         string prefix;
-        float tonicFrequency5th = tonicFrequency * 2f; // 第5八度的主音频率
         
-        if (frequency < tonicFrequency) // 低于F4
+        // 计算当前音符的绝对八度数（基于C4=第4八度的标准）
+        // C4 = 261.63Hz，计算当前频率相对于C4的八度数
+        float c4Frequency = 261.63f;
+        float octaveFromC4 = Mathf.Log(frequency / c4Frequency, 2f);
+        int absoluteOctave = 4 + Mathf.FloorToInt(octaveFromC4);
+        
+        // 根据绝对八度数判断前缀
+        if (absoluteOctave < 4) // 第3八度及以下
         {
             prefix = "低音";
         }
-        else if (frequency >= tonicFrequency5th) // F5及以上
+        else if (absoluteOctave >= 5) // 第5八度及以上
         {
             prefix = "高音";
         }
-        else // F4到F5之间（包含F4，不包含F5）
+        else // 第4八度
         {
             prefix = "中音";
         }
