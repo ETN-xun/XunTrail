@@ -153,7 +153,38 @@ public class ChallengeSceneManager : MonoBehaviour
         
         if (!string.IsNullOrEmpty(selectedFile))
         {
-            if (FileSelector.IsValidMusicSheetFile(selectedFile))
+            // 处理成功选择的文件
+            HandleSelectedFile(selectedFile);
+        }
+        else
+        {
+            // 原生对话框失败或用户取消，尝试使用备用UI
+            Debug.Log("ChallengeSceneManager: 原生文件选择失败，使用备用UI");
+            
+            if (selectFileText != null)
+                selectFileText.text = "正在打开文件选择器...";
+                
+            FileSelector.ShowFileSelectionUI(OnFileSelectedFromUI);
+        }
+    }
+    
+    private void OnFileSelectedFromUI(string selectedFile)
+    {
+        if (!string.IsNullOrEmpty(selectedFile))
+        {
+            HandleSelectedFile(selectedFile);
+        }
+        else
+        {
+            // 用户取消了文件选择，尝试从StreamingAssets加载默认文件
+            Debug.Log("ChallengeSceneManager: 用户取消了文件选择，尝试加载默认文件");
+            LoadDefaultFile();
+        }
+    }
+    
+    private void HandleSelectedFile(string selectedFile)
+    {
+        if (FileSelector.IsValidMusicSheetFile(selectedFile))
         {
             // 用户选择了有效的外部文件
             selectedFilePath = selectedFile;
@@ -166,25 +197,21 @@ public class ChallengeSceneManager : MonoBehaviour
             LoadMusicSheet(selectedFile);
                 
             Debug.Log($"ChallengeSceneManager: 选择了外部文件 {fileName}");
-            return;
-            }
-            else
-            {
-                // 选择的文件无效
-                Debug.LogWarning($"ChallengeSceneManager: 选择的文件不是有效的乐谱文件: {selectedFile}");
-                if (selectFileText != null)
-                    selectFileText.text = "选择的文件格式无效";
-                return;
-            }
         }
         else
         {
-            // 用户取消了文件选择
-            Debug.Log("ChallengeSceneManager: 用户取消了文件选择");
+            // 选择的文件无效
+            Debug.LogWarning($"ChallengeSceneManager: 选择的文件不是有效的乐谱文件: {selectedFile}");
             if (selectFileText != null)
-                selectFileText.text = "未选择文件";
+                selectFileText.text = "选择的文件格式无效，尝试加载默认文件";
+            
+            // 尝试加载默认文件
+            LoadDefaultFile();
         }
-        
+    }
+    
+    private void LoadDefaultFile()
+    {
         // 如果没有选择外部文件，则从StreamingAssets加载
         if (ChallengeDataManager.Instance != null)
         {
