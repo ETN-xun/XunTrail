@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class SampleSceneManager : MonoBehaviour
 {
@@ -44,10 +47,10 @@ public class SampleSceneManager : MonoBehaviour
     
     void Update()
     {
-        // 检测ESC键按下，立即重启并回到标题画面
+        // 检测ESC键按下，直接退出游戏
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            RestartToTitle();
+            QuitGame();
         }
     }
     
@@ -73,6 +76,28 @@ public class SampleSceneManager : MonoBehaviour
         
         // 加载标题场景
         SceneManager.LoadScene("TitleScene");
+    }
+    
+    private void QuitGame()
+    {
+        Debug.Log("SampleSceneManager: 检测到ESC键，退出游戏");
+        
+        // 停止所有音频
+        AudioSource[] audioSources = FindObjectsOfType<AudioSource>();
+        foreach (AudioSource audioSource in audioSources)
+        {
+            audioSource.Stop();
+        }
+        
+        // 重置时间缩放
+        Time.timeScale = 1f;
+        
+        // 退出应用程序
+        #if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+        #else
+            Application.Quit();
+        #endif
     }
     
     private void FindUIElements()

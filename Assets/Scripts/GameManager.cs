@@ -1,5 +1,8 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class GameManager : MonoBehaviour
 {
@@ -29,7 +32,7 @@ public class GameManager : MonoBehaviour
         // 检测ESC键输入
         if (enableEscRestart && Input.GetKeyDown(KeyCode.Escape))
         {
-            RestartGame();
+            QuitGame();
         }
     }
     
@@ -50,6 +53,26 @@ public class GameManager : MonoBehaviour
         SceneManager.LoadScene(currentSceneName);
         
         Debug.Log($"游戏已重启，重新加载场景: {currentSceneName}");
+    }
+    
+    /// <summary>
+    /// 退出游戏
+    /// </summary>
+    public void QuitGame()
+    {
+        Debug.Log("ESC键被按下，正在退出游戏...");
+        
+        // 清理游戏状态
+        CleanupGameState();
+        
+        // 退出应用程序
+        #if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+        #else
+            Application.Quit();
+        #endif
+        
+        Debug.Log("游戏已退出");
     }
     
     /// <summary>

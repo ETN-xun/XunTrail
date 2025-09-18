@@ -4,6 +4,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.IO;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class ChallengeSceneManager : MonoBehaviour
 {
@@ -44,10 +47,10 @@ public class ChallengeSceneManager : MonoBehaviour
     
     void Update()
     {
-        // 检测ESC键按下，立即回到标题画面
+        // 检测ESC键按下，直接退出游戏
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            OnBackToMenuClicked();
+            QuitGame();
         }
     }
     
@@ -319,6 +322,19 @@ public class ChallengeSceneManager : MonoBehaviour
         {
             Debug.LogWarning("ChallengeSceneManager: 请先选择一个有效的音乐文件");
         }
+    }
+    
+    // 退出游戏
+    private void QuitGame()
+    {
+        Debug.Log("ChallengeSceneManager: 检测到ESC键，退出游戏");
+        
+        // 退出应用程序
+        #if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+        #else
+            Application.Quit();
+        #endif
     }
     
     // 返回主菜单
