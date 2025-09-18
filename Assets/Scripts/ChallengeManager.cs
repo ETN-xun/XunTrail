@@ -48,6 +48,9 @@ public class ChallengeManager : MonoBehaviour
     // 实时音符检测
     private string lastDetectedNote = "";
     private float lastNoteDetectionTime = 0f;
+    
+    // SampleSceneManager引用
+    private SampleSceneManager sampleSceneManager;
     private const float NOTE_DETECTION_INTERVAL = 0.1f; // 每0.1秒检测一次音符
     
     [System.Serializable]
@@ -171,6 +174,29 @@ private MusicSheet currentMusicSheet; // 当前使用的乐谱
             else
             {
                 Debug.LogWarning("未找到ToneGenerator对象");
+            }
+        }
+        
+        // 查找SampleSceneManager引用
+        if (sampleSceneManager == null)
+        {
+            sampleSceneManager = FindObjectOfType<SampleSceneManager>();
+            if (sampleSceneManager != null)
+            {
+                Debug.Log("自动找到SampleSceneManager对象");
+                // 如果scoreText为null，尝试从SampleSceneManager获取
+                if (scoreText == null)
+                {
+                    scoreText = sampleSceneManager.GetScoreText();
+                    if (scoreText != null)
+                    {
+                        Debug.Log("从SampleSceneManager获取到ScoreText引用");
+                    }
+                }
+            }
+            else
+            {
+                Debug.LogWarning("未找到SampleSceneManager对象");
             }
         }
         
@@ -444,6 +470,19 @@ public void StartChallenge(MusicSheet musicSheet)
         
         // 初始化玩家演奏记录
         playerPerformance.Clear();
+        
+        // 初始化得分显示
+        if (scoreText != null)
+        {
+            scoreText.text = "当前得分: 0.0%";
+            Debug.Log("初始化得分显示为0.0%");
+        }
+        
+        // 同时通过SampleSceneManager初始化得分显示
+        if (sampleSceneManager != null)
+        {
+            sampleSceneManager.UpdateScoreDisplay(0.0f);
+        }
         
         if (challengeUI != null)
             challengeUI.SetActive(true);
@@ -723,16 +762,33 @@ public void OnNoteDetected(string detectedNote)
 
     private void UpdateChallengeUI()
     {
+        // 实时更新得分显示
         if (scoreText != null)
         {
             if (challengeCompleted)
             {
-                scoreText.text = $"最终得分: {currentScore:F1}%";
+                // 挑战完成时显示最终得分
+                float finalSimilarity = CalculatePerformanceSimilarity();
+                scoreText.text = $"最终得分: {finalSimilarity:F1}%";
+                Debug.Log($"显示最终得分: {finalSimilarity:F1}%");
             }
             else
             {
-                scoreText.text = $"演奏中...";
+                // 挑战进行中显示实时得分
+                float currentSimilarity = CalculatePerformanceSimilarity();
+                scoreText.text = $"当前得分: {currentSimilarity:F1}%";
             }
+        }
+        else
+        {
+            Debug.LogWarning("scoreText为null，无法更新得分显示");
+        }
+        
+        // 同时通过SampleSceneManager更新得分
+        if (sampleSceneManager != null)
+        {
+            float currentSimilarity = CalculatePerformanceSimilarity();
+            sampleSceneManager.UpdateScoreDisplay(currentSimilarity);
         }
             
         if (targetNoteText != null)
@@ -1205,6 +1261,8 @@ private float CalculateCorrectTimeForNote(TimedNote timedNote)
     
     private void CalculateFinalScore()
     {
+        challengeCompleted = true;
+        
         // 计算基于时间和音符匹配的相似度
         float similarity = CalculatePerformanceSimilarity();
         

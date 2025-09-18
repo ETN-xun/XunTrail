@@ -173,4 +173,24 @@ public class SampleSceneManager : MonoBehaviour
         
         SceneManager.LoadScene("TitleScene");
     }
+    
+    // 新增方法：更新得分显示
+    public void UpdateScoreDisplay(float score)
+    {
+        if (scoreText != null)
+        {
+            scoreText.text = $"得分: {score:F1}%";
+            Debug.Log($"SampleSceneManager: 更新得分显示为 {score:F1}%");
+        }
+        else
+        {
+            Debug.LogWarning("SampleSceneManager: scoreText为null，无法更新得分显示");
+        }
+    }
+    
+    // 新增方法：获取ScoreText组件的引用
+    public Text GetScoreText()
+    {
+        return scoreText;
+    }
 }
