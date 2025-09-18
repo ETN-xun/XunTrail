@@ -239,8 +239,8 @@ void Update()
 
         UpdateUI(adjustedFrequency);
 
-        // 计算目标频率
-        float newTargetFrequency = adjustedFrequency * Mathf.Pow(2f, ottava + key / 12f);
+        // 计算目标频率（key调号调整已在GetFrequencyFromSolfege中应用，这里只应用ottava八度调整）
+        float newTargetFrequency = adjustedFrequency * Mathf.Pow(2f, ottava);
         
         // 检测频率变化是否显著
         bool significantFrequencyChange = Mathf.Abs(newTargetFrequency - _targetFrequency) / _targetFrequency > 0.05f;
@@ -1368,8 +1368,8 @@ void CheckNoteForChallenge()
         // 获取实际演奏的频率（包含调号和八度调整）
         float actualFrequency = GetFrequency();
         
-        // 应用八度和调号调整
-        float finalFrequency = actualFrequency * Mathf.Pow(2f, ottava + key / 12f);
+        // 应用八度调整（key调号调整已在GetFrequency中应用）
+        float finalFrequency = actualFrequency * Mathf.Pow(2f, ottava);
         
         Debug.Log($"GetCurrentNoteName: 基础频率={actualFrequency:F2}Hz, 最终频率={finalFrequency:F2}Hz, 八度={ottava}, 调号={key}");
         
