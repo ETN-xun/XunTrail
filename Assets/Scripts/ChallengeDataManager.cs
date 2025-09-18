@@ -54,6 +54,12 @@ public class ChallengeDataManager : MonoBehaviour
     {
         return selectedMusicSheet;
     }
+    
+    public void ClearSelectedMusicSheet()
+    {
+        selectedMusicSheet = null;
+        Debug.Log("ChallengeDataManager: 已清除选中的乐谱");
+    }
 }
 
 [System.Serializable]

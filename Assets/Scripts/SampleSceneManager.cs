@@ -42,6 +42,39 @@ public class SampleSceneManager : MonoBehaviour
         }
     }
     
+    void Update()
+    {
+        // 检测ESC键按下，立即重启并回到标题画面
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            RestartToTitle();
+        }
+    }
+    
+    private void RestartToTitle()
+    {
+        Debug.Log("SampleSceneManager: 检测到ESC键，重启游戏并回到标题画面");
+        
+        // 停止所有音频
+        AudioSource[] audioSources = FindObjectsOfType<AudioSource>();
+        foreach (AudioSource audioSource in audioSources)
+        {
+            audioSource.Stop();
+        }
+        
+        // 重置时间缩放
+        Time.timeScale = 1f;
+        
+        // 清除选中的乐谱
+        if (ChallengeDataManager.Instance != null)
+        {
+            ChallengeDataManager.Instance.SetSelectedMusicSheet(null);
+        }
+        
+        // 加载标题场景
+        SceneManager.LoadScene("TitleScene");
+    }
+    
     private void FindUIElements()
     {
         // 查找ChallengeUI对象（包括非激活的）

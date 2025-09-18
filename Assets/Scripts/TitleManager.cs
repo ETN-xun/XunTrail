@@ -37,6 +37,15 @@ void Start()
                 quitButton.onClick.AddListener(OnQuitClicked);
         }
     }
+    
+    void Update()
+    {
+        // 在标题画面按ESC键退出游戏
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            OnQuitClicked();
+        }
+    }
 
 public void OnFreeModeClicked()
     {

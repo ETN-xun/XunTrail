@@ -1704,12 +1704,12 @@ MonoBehaviour:
   releaseTime: 0.25
   frequencyChangeThreshold: 0.05
   isStereo: 0
-  text: {fileID: 0}
-  OttaText: {fileID: 0}
+  text: {fileID: 1882688797}
+  OttaText: {fileID: 1847513823}
   ottava: 0
   key: 0
-  keyText: {fileID: 0}
-  xunAnimator: {fileID: 0}
+  keyText: {fileID: 1062302201}
+  xunAnimator: {fileID: 1866294422}
 --- !u!1 &1882688795
 GameObject:
   m_ObjectHideFlags: 0

@@ -42,6 +42,15 @@ public class ChallengeSceneManager : MonoBehaviour
             startButton.interactable = false;
     }
     
+    void Update()
+    {
+        // 检测ESC键按下，立即回到标题画面
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            OnBackToMenuClicked();
+        }
+    }
+    
     void ForceAssignUIReferences()
     {
         Debug.Log("ChallengeSceneManager: ForceAssignUIReferences 方法开始执行");

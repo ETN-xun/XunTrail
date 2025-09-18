@@ -698,7 +698,8 @@ private void EndCountdown()
         }
             
         float scorePercentage = (correctPlayTime / totalMusicDuration) * 100f;
-        float clampedScore = Mathf.Clamp(scorePercentage, 0f, 100f);
+        // 使用向上取整让玩家更容易获得高分，增加成就感
+        float clampedScore = Mathf.Clamp(Mathf.Ceil(scorePercentage), 0f, 100f);
         currentScore = Mathf.RoundToInt(clampedScore);
         return clampedScore;
     }
