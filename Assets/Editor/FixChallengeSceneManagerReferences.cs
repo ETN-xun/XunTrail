@@ -19,6 +19,22 @@ public class FixChallengeSceneManagerReferences
             return;
         }
 
+        // 首先检查当前场景是否是 ChallengeScene
+        var currentScene = UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene();
+        if (!currentScene.name.Contains("Challenge"))
+        {
+            // 如果不是挑战场景，静默返回，不显示警告
+            return;
+        }
+
+        // 再次确认场景中是否存在 ChallengeSceneManager 组件
+        ChallengeSceneManager[] allManagers = Object.FindObjectsOfType<ChallengeSceneManager>();
+        if (allManagers.Length == 0)
+        {
+            // 如果挑战场景中没有 ChallengeSceneManager 组件，也静默返回
+            return;
+        }
+
         // 查找SceneController
         GameObject sceneController = GameObject.Find("SceneController");
         if (sceneController == null)
@@ -40,7 +56,7 @@ public class FixChallengeSceneManagerReferences
         ChallengeSceneManager manager = sceneController.GetComponent<ChallengeSceneManager>();
         if (manager == null)
         {
-            Debug.LogWarning("ChallengeSceneManager component not found");
+            Debug.LogWarning("ChallengeSceneManager component not found in Challenge scene");
             return;
         }
 
