@@ -439,6 +439,12 @@ void Update()
             if (!_keyStates.ContainsKey(k))
                 _keyStates.Add(k, false);
         }
+        
+        // 确保Alpha0键被正确初始化
+        if (!_keyStates.ContainsKey(KeyCode.Alpha0))
+        {
+            _keyStates.Add(KeyCode.Alpha0, false);
+        }
     }
 
     private void UpdateKeyStates()
@@ -447,7 +453,7 @@ void Update()
         foreach (var k in keysSnapshot)
         {
             if (k == KeyCode.Space) continue;
-                _keyStates[k] = Input.GetKey(k);
+            _keyStates[k] = Input.GetKey(k);
         }
 
         // 主线程更新空格键状态到私有变量
@@ -457,7 +463,7 @@ void Update()
             _isSpacePressed = CheckAnyKeys();
         }
         else
-                bool alpha0Pressed = Input.GetKey(KeyCode.Alpha0);
+        {
             _isSpacePressed = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed;
         }
         if (isTenHoleMode)
@@ -470,18 +476,6 @@ void Update()
         }
     }
 
-                }
-                
-                // 备用检测方案：检查Keypad0
-                if (!alpha0Pressed)
-                {
-                    alpha0Pressed = Input.GetKey(KeyCode.Keypad0);
-                }
-                
-                // 强制检测：如果任何0键被按下，都认为Alpha0被按下
-                if (!alpha0Pressed)
-                {
-                    alpha0Pressed = Input.GetKeyDown(KeyCode.Alpha0) || Input.GetKeyDown(KeyCode.Keypad0);
     private void HandleOctaveInput()
     {
         // 如果有手柄连接并且正在使用，则不处理键盘的八度输入
