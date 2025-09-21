@@ -21,6 +21,7 @@ public class ToneGenerator : MonoBehaviour
     [Range(0.001f, 0.1f)] public float frequencyChangeThreshold = 0.05f;
 
     public bool isStereo = false;
+    public bool isTenHoleMode = false;
 
     private AudioSource audioSource;
     private double currentPhaseD = 0.0;
@@ -218,6 +219,19 @@ private void ConfigureAudioComponents()
 void Update()
     {
         _time = Time.time;
+
+        if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift))
+        {
+            isTenHoleMode = !isTenHoleMode;
+            if (isTenHoleMode)
+            {
+                Debug.Log("切换到十孔模式");
+            }
+            else
+            {
+                Debug.Log("切换到八孔模式");
+            }
+        }
         
         
         
@@ -247,7 +261,7 @@ void Update()
 
         // 检测是否应该播放声音（必须按下空格键或手柄按键）
         bool anyNoteKeyPressed = CheckAnyNoteKey();
-        bool shouldPlaySound = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed;
+        bool shouldPlaySound = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed||(isTenHoleMode&&CheckAnyKeys());
         
         if (shouldPlaySound)
         {
@@ -408,10 +422,16 @@ void Update()
     private void InitializeKeyStates()
     {
         var keys = new KeyCode[]{
+            //八孔模式键位
             KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
             KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon,
             KeyCode.P, KeyCode.Comma, KeyCode.Period, KeyCode.Space,
-            KeyCode.LeftArrow, KeyCode.RightArrow
+            KeyCode.LeftArrow, KeyCode.RightArrow,
+            
+            //十孔模式键位
+            KeyCode.Q,KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+            KeyCode.I,KeyCode.Alpha9,KeyCode.Alpha0,
+            KeyCode.LeftBracket,KeyCode.C,KeyCode.M
         };
 
         foreach (var k in keys)
@@ -432,8 +452,22 @@ void Update()
 
         // 主线程更新空格键状态到私有变量
         bool anyNoteKeyPressed = CheckAnyNoteKey();
-        _isSpacePressed = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed;
-        _keyStates[KeyCode.Space] = _isSpacePressed;
+        if (isTenHoleMode)
+        {
+            _isSpacePressed = CheckAnyKeys();
+        }
+        else
+        {
+            _isSpacePressed = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed;
+        }
+        if (isTenHoleMode)
+        {
+            _keyStates[KeyCode.Space] = Input.GetKey(KeyCode.Space);
+        }
+        else
+        {
+            _keyStates[KeyCode.Space] = _isSpacePressed;
+        }
     }
 
     private void HandleOctaveInput()
@@ -491,55 +525,117 @@ private float GetBaseFrequency()
         }
         else
         {
-            // 如果没有手柄输入，使用键盘控制
-            // 根据新的指法表进行按键组合检测
-            if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-                KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
-                solfegeNote = 5; // 低音5 - AWEFJIO；
-            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-                KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.P))
-                solfegeNote = 15; // 低音5# - AWEFJIOP
-            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-                KeyCode.J, KeyCode.I, KeyCode.O))
-                solfegeNote = 6; // 低音6 - AWEFJIO
-            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-                KeyCode.J, KeyCode.O, KeyCode.Semicolon))
-                solfegeNote = 16; // 低音6# - AWEFJO；
-            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-                KeyCode.J, KeyCode.I, KeyCode.Semicolon))
-                solfegeNote = 7; // 低音7 - AWEFJI；
-            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-                KeyCode.J, KeyCode.I))
-                solfegeNote = 1; // 中音1 - AWEFJI
-            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-                KeyCode.J, KeyCode.Semicolon))
-                solfegeNote = 11; // 中音1# - AWEFJ；
-            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-                KeyCode.J))
-                solfegeNote = 2; // 中音2 - AWEFJ
-            else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J, 
-                KeyCode.Semicolon))
-                solfegeNote = 12; // 中音2# - WEFJ；
-            else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J))
-                solfegeNote = 3; // 中音3 - WEFJ
-            else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I, 
-                KeyCode.O))
-                solfegeNote = 4; // 中音4 - EFJIO
-            else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I))
-                solfegeNote = 14; // 中音4# - EFJI
-            else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J))
-                solfegeNote = 5; // 中音5 - EFJ
-            else if (CheckKeys(KeyCode.F, KeyCode.J, KeyCode.I))
-                solfegeNote = 15; // 中音5# - FJI
-            else if (CheckKeys(KeyCode.F, KeyCode.J))
-                solfegeNote = 6; // 中音6 - FJ
-            else if (CheckKeys(KeyCode.J, KeyCode.I, KeyCode.O))
-                solfegeNote = 16; // 中音6# - JIO
-            else if (CheckKeys(KeyCode.J))
-                solfegeNote = 7; // 中音7 - J
-            // 如果上述按键都不按，则为高音1
-            else if (!CheckAnyKeys())
-                solfegeNote = 21; // 高音1 - 上述按键都不按
+            if (isTenHoleMode)//十孔模式
+            {
+                                // 如果没有手柄输入，使用键盘控制
+                // 根据新的指法表进行按键组合检测
+                if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                        KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket,KeyCode.C,KeyCode.M))
+                    solfegeNote = 5; // 低音5
+                else if (CheckKeys(KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket,KeyCode.C,KeyCode.M))
+                    solfegeNote = 15; // 低音5#
+                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket,KeyCode.C,KeyCode.M))
+                    solfegeNote = 6; // 低音6
+                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I, KeyCode.Alpha9,KeyCode.LeftBracket,KeyCode.C,KeyCode.M))
+                    solfegeNote = 16; // 低音6#
+                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0,KeyCode.C,KeyCode.M))
+                    solfegeNote = 7; // 低音7
+                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0,KeyCode.C,KeyCode.M))
+                    solfegeNote = 1; // 中音1
+                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I, KeyCode.Alpha9,KeyCode.C,KeyCode.M))
+                    solfegeNote = 11; // 中音1#
+                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I, KeyCode.Alpha9,KeyCode.C,KeyCode.M))
+                    solfegeNote = 2; // 中音2
+                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I,KeyCode.C,KeyCode.M))
+                    solfegeNote = 12; // 中音2#
+                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I,KeyCode.C,KeyCode.M))
+                    solfegeNote = 3; // 中音3
+                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.Alpha9, KeyCode.Alpha0,KeyCode.C,KeyCode.M))
+                    solfegeNote = 4; // 中音4
+                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.Alpha9,KeyCode.C,KeyCode.M))
+                    solfegeNote = 14; // 中音4#
+                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,KeyCode.C,KeyCode.M))
+                    solfegeNote = 25; // 中音5
+                else if (CheckKeys(KeyCode.Alpha3, KeyCode.R,KeyCode.Alpha9,KeyCode.C,KeyCode.M))
+                    solfegeNote = 35; // 中音5#
+                else if (CheckKeys(KeyCode.Alpha3,KeyCode.R,KeyCode.C,KeyCode.M))
+                    solfegeNote = 26; // 中音6
+                else if (CheckKeys(KeyCode.R,KeyCode.Alpha9,KeyCode.Alpha0,KeyCode.C,KeyCode.M))
+                    solfegeNote = 36; // 中音6#
+                else if (CheckKeys(KeyCode.R,KeyCode.C,KeyCode.M))
+                    solfegeNote = 27; // 中音7
+                else if (CheckKeys(KeyCode.C,KeyCode.M))
+                    solfegeNote = 31; // 高音1
+                // 如果上述按键都不按，则为高音1
+                else
+                {
+                    solfegeNote = -1;
+                    _isSpacePressed = false;
+                }
+            }
+            else
+            {
+                // 如果没有手柄输入，使用键盘控制
+                // 根据新的指法表进行按键组合检测
+                if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                        KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+                    solfegeNote = 5; // 低音5 - AWEFJIO；
+                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                             KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.P))
+                    solfegeNote = 15; // 低音5# - AWEFJIOP
+                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                             KeyCode.J, KeyCode.I, KeyCode.O))
+                    solfegeNote = 6; // 低音6 - AWEFJIO
+                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                             KeyCode.J, KeyCode.O, KeyCode.Semicolon))
+                    solfegeNote = 16; // 低音6# - AWEFJO；
+                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                             KeyCode.J, KeyCode.I, KeyCode.Semicolon))
+                    solfegeNote = 7; // 低音7 - AWEFJI；
+                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                             KeyCode.J, KeyCode.I))
+                    solfegeNote = 1; // 中音1 - AWEFJI
+                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                             KeyCode.J, KeyCode.Semicolon))
+                    solfegeNote = 11; // 中音1# - AWEFJ；
+                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                             KeyCode.J))
+                    solfegeNote = 2; // 中音2 - AWEFJ
+                else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J,
+                             KeyCode.Semicolon))
+                    solfegeNote = 12; // 中音2# - WEFJ；
+                else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J))
+                    solfegeNote = 3; // 中音3 - WEFJ
+                else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I,
+                             KeyCode.O))
+                    solfegeNote = 4; // 中音4 - EFJIO
+                else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I))
+                    solfegeNote = 14; // 中音4# - EFJI
+                else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J))
+                    solfegeNote = 25; // 中音5 - EFJ
+                else if (CheckKeys(KeyCode.F, KeyCode.J, KeyCode.I))
+                    solfegeNote = 35; // 中音5# - FJI
+                else if (CheckKeys(KeyCode.F, KeyCode.J))
+                    solfegeNote = 26; // 中音6 - FJ
+                else if (CheckKeys(KeyCode.J, KeyCode.I, KeyCode.O))
+                    solfegeNote = 36; // 中音6# - JIO
+                else if (CheckKeys(KeyCode.J))
+                    solfegeNote = 27; // 中音7 - J
+                // 如果上述按键都不按，则为高音1
+                else if (!CheckAnyKeys())
+                    solfegeNote = 31; // 高音1 - 上述按键都不按
+            }
         }
         
         if (solfegeNote == -1)
@@ -623,6 +719,7 @@ private float GetBaseFrequency()
                 
             default:
                 semitoneOffset = 0; // 默认中音1
+                _isSpacePressed = false;
                 break;
         }
         
@@ -654,72 +751,131 @@ public float GetFrequency()
             
             return baseFrequency;
         }
-        
-        // 使用新的指法表进行键盘控制
-        // 低音5 - AWEFJIO；
-        if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
-            return GetFrequencyFromSolfege(5);
-        // 低音5# - AWEFJIOP
-        else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.P))
-            return GetFrequencyFromSolfege(15);
-        // 低音6 - AWEFJIO
-        else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.I, KeyCode.O))
-            return GetFrequencyFromSolfege(6);
-        // 低音6# - AWEFJO；
-        else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.O, KeyCode.Semicolon))
-            return GetFrequencyFromSolfege(16);
-        // 低音7 - AWEFJI；
-        else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.I, KeyCode.Semicolon))
-            return GetFrequencyFromSolfege(7);
-        // 中音1 - AWEFJI
-        else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.I))
-            return GetFrequencyFromSolfege(1);
-        // 中音1# - AWEFJ；
-        else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.Semicolon))
-            return GetFrequencyFromSolfege(11);
-        // 中音2 - AWEFJ
-        else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J))
-            return GetFrequencyFromSolfege(2);
-        // 中音2# - WEFJ；
-        else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J, 
-            KeyCode.Semicolon))
-            return GetFrequencyFromSolfege(12);
-        // 中音3 - WEFJ
-        else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J))
-            return GetFrequencyFromSolfege(3);
-        // 中音4 - EFJIO
-        else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I, 
-            KeyCode.O))
-            return GetFrequencyFromSolfege(4);
-        // 中音4# - EFJI
-        else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I))
-            return GetFrequencyFromSolfege(14);
-        // 中音5 - EFJ
-        else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J))
-            return GetFrequencyFromSolfege(25);
-        // 中音5# - FJI
-        else if (CheckKeys(KeyCode.F, KeyCode.J, KeyCode.I))
-            return GetFrequencyFromSolfege(35);
-        // 中音6 - FJ
-        else if (CheckKeys(KeyCode.F, KeyCode.J))
-            return GetFrequencyFromSolfege(26);
-        // 中音6# - JIO
-        else if (CheckKeys(KeyCode.J, KeyCode.I, KeyCode.O))
-            return GetFrequencyFromSolfege(36);
-        // 中音7 - J
-        else if (_keyStates.GetValueOrDefault(KeyCode.J))
-            return GetFrequencyFromSolfege(27);
-        // 高音1 - 上述按键都不按
-        else
-            return GetFrequencyFromSolfege(31);
+        if (isTenHoleMode)//十孔模式
+            {
+                                // 如果没有手柄输入，使用键盘控制
+                // 根据新的指法表进行按键组合检测
+                if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                        KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(5);
+                else if (CheckKeys(KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(15);
+                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(6);
+                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I, KeyCode.Alpha9,KeyCode.LeftBracket,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(16);
+                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(7);
+                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(1);
+                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I, KeyCode.Alpha9,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(11);
+                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I, KeyCode.Alpha9,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(2);
+                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(12);
+                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.I,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(3);
+                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.Alpha9, KeyCode.Alpha0,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(4);
+                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+                             KeyCode.Alpha9,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(14);
+                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(25);
+                else if (CheckKeys(KeyCode.Alpha3, KeyCode.R,KeyCode.Alpha9,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(35);
+                else if (CheckKeys(KeyCode.Alpha3,KeyCode.R,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(26);
+                else if (CheckKeys(KeyCode.R,KeyCode.Alpha9,KeyCode.Alpha0,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(36);
+                else if (CheckKeys(KeyCode.R,KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(27);
+                else if (CheckKeys(KeyCode.C,KeyCode.M))
+                    return GetFrequencyFromSolfege(31);
+                // 如果上述按键都不按，则为高音1
+                else if (!CheckAnyKeys())
+                    return GetFrequencyFromSolfege(31);
+            }
+            else
+            {
+                // 使用新的指法表进行键盘控制
+                // 低音5 - AWEFJIO；
+                if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                        KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+                    return GetFrequencyFromSolfege(5);
+                // 低音5# - AWEFJIOP
+                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                             KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.P))
+                    return GetFrequencyFromSolfege(15);
+                // 低音6 - AWEFJIO
+                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                             KeyCode.J, KeyCode.I, KeyCode.O))
+                    return GetFrequencyFromSolfege(6);
+                // 低音6# - AWEFJO；
+                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                             KeyCode.J, KeyCode.O, KeyCode.Semicolon))
+                    return GetFrequencyFromSolfege(16);
+                // 低音7 - AWEFJI；
+                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                             KeyCode.J, KeyCode.I, KeyCode.Semicolon))
+                    return GetFrequencyFromSolfege(7);
+                // 中音1 - AWEFJI
+                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                             KeyCode.J, KeyCode.I))
+                    return GetFrequencyFromSolfege(1);
+                // 中音1# - AWEFJ；
+                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                             KeyCode.J, KeyCode.Semicolon))
+                    return GetFrequencyFromSolfege(11);
+                // 中音2 - AWEFJ
+                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                             KeyCode.J))
+                    return GetFrequencyFromSolfege(2);
+                // 中音2# - WEFJ；
+                else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J,
+                             KeyCode.Semicolon))
+                    return GetFrequencyFromSolfege(12);
+                // 中音3 - WEFJ
+                else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J))
+                    return GetFrequencyFromSolfege(3);
+                // 中音4 - EFJIO
+                else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I,
+                             KeyCode.O))
+                    return GetFrequencyFromSolfege(4);
+                // 中音4# - EFJI
+                else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I))
+                    return GetFrequencyFromSolfege(14);
+                // 中音5 - EFJ
+                else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J))
+                    return GetFrequencyFromSolfege(25);
+                // 中音5# - FJI
+                else if (CheckKeys(KeyCode.F, KeyCode.J, KeyCode.I))
+                    return GetFrequencyFromSolfege(35);
+                // 中音6 - FJ
+                else if (CheckKeys(KeyCode.F, KeyCode.J))
+                    return GetFrequencyFromSolfege(26);
+                // 中音6# - JIO
+                else if (CheckKeys(KeyCode.J, KeyCode.I, KeyCode.O))
+                    return GetFrequencyFromSolfege(36);
+                // 中音7 - J
+                else if (_keyStates.GetValueOrDefault(KeyCode.J))
+                    return GetFrequencyFromSolfege(27);
+                // 高音1 - 上述按键都不按
+                else
+                    return GetFrequencyFromSolfege(31);
+            }
+        return GetFrequencyFromSolfege(31);
     }
 
     private bool CheckKeys(params KeyCode[] keys)
@@ -734,86 +890,111 @@ public float GetFrequency()
 
 private bool CheckAnyKeys()
     {
-        // 检查是否有任何相关的按键被按下
-        return _keyStates.GetValueOrDefault(KeyCode.A) ||
-               _keyStates.GetValueOrDefault(KeyCode.W) ||
-               _keyStates.GetValueOrDefault(KeyCode.E) ||
-               _keyStates.GetValueOrDefault(KeyCode.F) ||
-               _keyStates.GetValueOrDefault(KeyCode.J) ||
-               _keyStates.GetValueOrDefault(KeyCode.I) ||
-               _keyStates.GetValueOrDefault(KeyCode.O) ||
-               _keyStates.GetValueOrDefault(KeyCode.P) ||
-               _keyStates.GetValueOrDefault(KeyCode.Semicolon);
+        if (isTenHoleMode)
+        {
+            return _keyStates.GetValueOrDefault(KeyCode.Alpha1) ||
+                   _keyStates.GetValueOrDefault(KeyCode.Q) ||
+                   _keyStates.GetValueOrDefault(KeyCode.Alpha2) ||
+                   _keyStates.GetValueOrDefault(KeyCode.Alpha3) ||
+                   _keyStates.GetValueOrDefault(KeyCode.R) ||
+                   _keyStates.GetValueOrDefault(KeyCode.I) ||
+                   _keyStates.GetValueOrDefault(KeyCode.Alpha9) ||
+                   _keyStates.GetValueOrDefault(KeyCode.Alpha0) ||
+                   _keyStates.GetValueOrDefault(KeyCode.LeftBracket) ||
+                   _keyStates.GetValueOrDefault(KeyCode.C) ||
+                   _keyStates.GetValueOrDefault(KeyCode.M) ||
+                   _keyStates.GetValueOrDefault(KeyCode.Space);
+        }
+        else
+        {
+            // 检查是否有任何相关的按键被按下
+            return _keyStates.GetValueOrDefault(KeyCode.A) ||
+                   _keyStates.GetValueOrDefault(KeyCode.W) ||
+                   _keyStates.GetValueOrDefault(KeyCode.E) ||
+                   _keyStates.GetValueOrDefault(KeyCode.F) ||
+                   _keyStates.GetValueOrDefault(KeyCode.J) ||
+                   _keyStates.GetValueOrDefault(KeyCode.I) ||
+                   _keyStates.GetValueOrDefault(KeyCode.O) ||
+                   _keyStates.GetValueOrDefault(KeyCode.P) ||
+                   _keyStates.GetValueOrDefault(KeyCode.Semicolon);
+        }
     }
 
 
     private int GetAnimatorState(float baseFrequency)
     {
-        // 根据新的指法表返回对应的动画状态
-        // 低音5 - AWEFJIO；
-        if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
-            return 0;
-        // 低音5# - AWEFJIOP
-        else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.P))
-            return 1;
-        // 低音6 - AWEFJIO
-        else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.I, KeyCode.O))
-            return 2;
-        // 低音6# - AWEFJO；
-        else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.O, KeyCode.Semicolon))
-            return 3;
-        // 低音7 - AWEFJI；
-        else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.I, KeyCode.Semicolon))
-            return 4;
-        // 中音1 - AWEFJI
-        else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.I))
-            return 5;
-        // 中音1# - AWEFJ；
-        else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J, KeyCode.Semicolon))
-            return 6;
-        // 中音2 - AWEFJ
-        else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-            KeyCode.J))
-            return 7;
-        // 中音2# - WEFJ；
-        else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J, 
-            KeyCode.Semicolon))
-            return 8;
-        // 中音3 - WEFJ
-        else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J))
-            return 9;
-        // 中音4 - EFJIO
-        else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I, 
-            KeyCode.O))
-            return 10;
-        // 中音4# - EFJI
-        else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I))
-            return 11;
-        // 中音5 - EFJ
-        else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J))
-            return 12;
-        // 中音5# - FJI
-        else if (CheckKeys(KeyCode.F, KeyCode.J, KeyCode.I))
-            return 13;
-        // 中音6 - FJ
-        else if (CheckKeys(KeyCode.F, KeyCode.J))
-            return 14;
-        // 中音6# - JIO
-        else if (CheckKeys(KeyCode.J, KeyCode.I, KeyCode.O))
-            return 15;
-        // 中音7 - J
-        else if (_keyStates.GetValueOrDefault(KeyCode.J))
-            return 16;
-        // 高音1 - 上述按键都不按
-        else
+        if (isTenHoleMode)
+        {
             return 17;
+        }
+        else
+        {
+            // 根据新的指法表返回对应的动画状态
+            // 低音5 - AWEFJIO；
+            if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                    KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+                return 0;
+            // 低音5# - AWEFJIOP
+            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                         KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.P))
+                return 1;
+            // 低音6 - AWEFJIO
+            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                         KeyCode.J, KeyCode.I, KeyCode.O))
+                return 2;
+            // 低音6# - AWEFJO；
+            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                         KeyCode.J, KeyCode.O, KeyCode.Semicolon))
+                return 3;
+            // 低音7 - AWEFJI；
+            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                         KeyCode.J, KeyCode.I, KeyCode.Semicolon))
+                return 4;
+            // 中音1 - AWEFJI
+            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                         KeyCode.J, KeyCode.I))
+                return 5;
+            // 中音1# - AWEFJ；
+            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                         KeyCode.J, KeyCode.Semicolon))
+                return 6;
+            // 中音2 - AWEFJ
+            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
+                         KeyCode.J))
+                return 7;
+            // 中音2# - WEFJ；
+            else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J,
+                         KeyCode.Semicolon))
+                return 8;
+            // 中音3 - WEFJ
+            else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J))
+                return 9;
+            // 中音4 - EFJIO
+            else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I,
+                         KeyCode.O))
+                return 10;
+            // 中音4# - EFJI
+            else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I))
+                return 11;
+            // 中音5 - EFJ
+            else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J))
+                return 12;
+            // 中音5# - FJI
+            else if (CheckKeys(KeyCode.F, KeyCode.J, KeyCode.I))
+                return 13;
+            // 中音6 - FJ
+            else if (CheckKeys(KeyCode.F, KeyCode.J))
+                return 14;
+            // 中音6# - JIO
+            else if (CheckKeys(KeyCode.J, KeyCode.I, KeyCode.O))
+                return 15;
+            // 中音7 - J
+            else if (_keyStates.GetValueOrDefault(KeyCode.J))
+                return 16;
+            // 高音1 - 上述按键都不按
+            else
+                return 17;
+        }
     }
 
 private string GetNoteName(float frequency)
@@ -1358,8 +1539,17 @@ void CheckNoteForChallenge()
     // 获取当前演奏的音符名称
     public string GetCurrentNoteName()
     {
+        bool isBlowing=false;
         // 首先检查是否在"吹气"（按下空格键或手柄按键）
-        bool isBlowing = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed;
+        if (isTenHoleMode)
+        {
+            isBlowing = CheckAnyKeys();
+        }
+        else
+        {
+            isBlowing = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed;
+        }
+
         if (!isBlowing)
         {
             return ""; // 没有吹气就没有演奏
