@@ -429,15 +429,21 @@ void Update()
             KeyCode.LeftArrow, KeyCode.RightArrow,
             
             //十孔模式键位
-            KeyCode.Q,KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
-            KeyCode.I,KeyCode.Alpha9,KeyCode.Alpha0,
-            KeyCode.LeftBracket,KeyCode.C,KeyCode.M
+            KeyCode.Q, KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
+            KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0,
+            KeyCode.LeftBracket, KeyCode.C, KeyCode.M
         };
 
         foreach (var k in keys)
         {
             if (!_keyStates.ContainsKey(k))
                 _keyStates.Add(k, false);
+        }
+        
+        // 确保Alpha0键被正确初始化
+        if (!_keyStates.ContainsKey(KeyCode.Alpha0))
+        {
+            _keyStates.Add(KeyCode.Alpha0, false);
         }
     }
 
@@ -783,59 +789,77 @@ public float GetFrequency()
         }
         if (isTenHoleMode)//十孔模式
             {
-                                // 如果没有手柄输入，使用键盘控制
-                // 根据新的指法表进行按键组合检测
-                if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
-                        KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket,KeyCode.C,KeyCode.M))
+                // 使用精确按键组合检测，按优先级从高到低检测
+                // 低音5 - Q+2+3+R+I+9+0+[+C+M
+                if (CheckExactKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(5);
-                else if (CheckKeys(KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
-                             KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket,KeyCode.C,KeyCode.M))
+                // 低音5# - 1+2+3+R+I+9+0+[+C+M
+                else if (CheckExactKeys(KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(15);
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
-                             KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket,KeyCode.C,KeyCode.M))
+                // 低音6 - 2+3+R+I+9+0+[+C+M
+                else if (CheckExactKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(6);
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
-                             KeyCode.I, KeyCode.Alpha9,KeyCode.LeftBracket,KeyCode.C,KeyCode.M))
+                // 低音6# - Q+2+3+R+I+9+[+C+M
+                else if (CheckExactKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(16);
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
-                             KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0,KeyCode.C,KeyCode.M))
+                // 低音7 - Q+2+3+R+I+9+0+C+M
+                else if (CheckExactKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(7);
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
-                             KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0,KeyCode.C,KeyCode.M))
+                // 中音1 - 2+3+R+I+9+0+C+M
+                else if (CheckExactKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(1);
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
-                             KeyCode.I, KeyCode.Alpha9,KeyCode.C,KeyCode.M))
+                // 中音1# - Q+2+3+R+I+9+C+M
+                else if (CheckExactKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(11);
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
-                             KeyCode.I, KeyCode.Alpha9,KeyCode.C,KeyCode.M))
+                // 中音2 - 2+3+R+I+9+C+M
+                else if (CheckExactKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(2);
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
-                             KeyCode.I,KeyCode.C,KeyCode.M))
+                // 中音2# - Q+2+3+R+I+C+M
+                else if (CheckExactKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(12);
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
-                             KeyCode.I,KeyCode.C,KeyCode.M))
+                // 中音3 - 2+3+R+I+C+M
+                else if (CheckExactKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(3);
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
-                             KeyCode.Alpha9, KeyCode.Alpha0,KeyCode.C,KeyCode.M))
+                // 中音4 - 2+3+R+9+0+C+M
+                else if (CheckExactKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(4);
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
-                             KeyCode.Alpha9,KeyCode.C,KeyCode.M))
+                // 中音4# - 2+3+R+9+C+M
+                else if (CheckExactKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(14);
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,KeyCode.C,KeyCode.M))
+                // 中音5 - 2+3+R+C+M
+                else if (CheckExactKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(25);
-                else if (CheckKeys(KeyCode.Alpha3, KeyCode.R,KeyCode.Alpha9,KeyCode.C,KeyCode.M))
+                // 中音5# - 3+R+9+C+M
+                else if (CheckExactKeys(KeyCode.Alpha3, KeyCode.R, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(35);
-                else if (CheckKeys(KeyCode.Alpha3,KeyCode.R,KeyCode.C,KeyCode.M))
+                // 中音6 - 3+R+C+M
+                else if (CheckExactKeys(KeyCode.Alpha3, KeyCode.R, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(26);
-                else if (CheckKeys(KeyCode.R,KeyCode.Alpha9,KeyCode.Alpha0,KeyCode.C,KeyCode.M))
+                // 中音6# - R+9+0+C+M
+                else if (CheckExactKeys(KeyCode.R, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(36);
-                else if (CheckKeys(KeyCode.R,KeyCode.C,KeyCode.M))
+                // 中音7 - R+C+M
+                else if (CheckExactKeys(KeyCode.R, KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(27);
-                else if (CheckKeys(KeyCode.C,KeyCode.M))
+                // 高音1 - C+M
+                else if (CheckExactKeys(KeyCode.C, KeyCode.M))
                     return GetFrequencyFromSolfege(31);
-                // 如果上述按键都不按，则为高音1
-                else if (!CheckAnyKeys())
-                    return GetFrequencyFromSolfege(31);
+                // 高音1# - 3+M
+                else if (CheckExactKeys(KeyCode.Alpha3, KeyCode.M))
+                    return GetFrequencyFromSolfege(41);
+                // 高音2 - M
+                else if (CheckExactKeys(KeyCode.M))
+                    return GetFrequencyFromSolfege(32);
+                // 高音2# - 3
+                else if (CheckExactKeys(KeyCode.Alpha3))
+                    return GetFrequencyFromSolfege(42);
+                // 高音3 - 空格键
+                else if (CheckExactKeys(KeyCode.Space))
+                    return GetFrequencyFromSolfege(33);
+                else
+                {
+                    return GetFrequencyFromSolfege(31); // 默认高音1
+                }
             }
             else
             {
