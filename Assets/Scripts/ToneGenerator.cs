@@ -22,6 +22,8 @@ public class ToneGenerator : MonoBehaviour
 
     public bool isStereo = false;
     public bool isTenHoleMode = false;
+    
+    public List<Sprite> eightHole = new List<Sprite>();
 
     private AudioSource audioSource;
     private double currentPhaseD = 0.0;
@@ -220,6 +222,7 @@ void Update()
     {
         _time = Time.time;
 
+        /*暂时禁用十孔模式
         if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift))
         {
             isTenHoleMode = !isTenHoleMode;
@@ -232,6 +235,7 @@ void Update()
                 Debug.Log("切换到八孔模式");
             }
         }
+        */
         
         
         
@@ -250,6 +254,8 @@ void Update()
 
         if (xunAnimator != null)
             xunAnimator.SetInteger("tone", animatorState);
+        
+        GetComponent<Image>().sprite=eightHole[animatorState];
 
         UpdateUI(adjustedFrequency);
 
@@ -1005,7 +1011,6 @@ public float GetFrequency()
                 else
                     return GetFrequencyFromSolfege(31);
             }
-        return GetFrequencyFromSolfege(31);
     }
 
     private bool CheckKeys(params KeyCode[] keys)

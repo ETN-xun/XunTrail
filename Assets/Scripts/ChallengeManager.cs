@@ -360,44 +360,6 @@ private MusicSheet currentMusicSheet; // 当前使用的乐谱
                 Debug.LogWarning("未找到CountdownText对象");
             }
         }
-        
-        // 查找ProgressSlider
-        if (progressSlider == null)
-        {
-            Slider[] allSliders = Resources.FindObjectsOfTypeAll<Slider>();
-            foreach (Slider slider in allSliders)
-            {
-                if (slider.name == "ProgressSlider" && slider.gameObject.scene.name != null)
-                {
-                    progressSlider = slider;
-                    Debug.Log("自动找到ProgressSlider对象");
-                    break;
-                }
-            }
-            if (progressSlider == null)
-            {
-                Debug.LogWarning("未找到ProgressSlider对象");
-            }
-        }
-        
-        // 查找ExitChallengeButton
-        if (exitChallengeButton == null)
-        {
-            Button[] allButtons = Resources.FindObjectsOfTypeAll<Button>();
-            foreach (Button button in allButtons)
-            {
-                if (button.name == "ExitChallengeButton" && button.gameObject.scene.name != null)
-                {
-                    exitChallengeButton = button;
-                    Debug.Log("自动找到ExitChallengeButton对象");
-                    break;
-                }
-            }
-            if (exitChallengeButton == null)
-            {
-                Debug.LogWarning("未找到ExitChallengeButton对象");
-            }
-        }
     }
 
     private void Update()
