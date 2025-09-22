@@ -221,8 +221,7 @@ private void ConfigureAudioComponents()
 void Update()
     {
         _time = Time.time;
-
-        /*暂时禁用十孔模式
+        
         if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift))
         {
             isTenHoleMode = !isTenHoleMode;
@@ -235,7 +234,6 @@ void Update()
                 Debug.Log("切换到八孔模式");
             }
         }
-        */
         
         
         
