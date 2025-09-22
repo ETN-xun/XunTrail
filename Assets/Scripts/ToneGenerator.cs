@@ -430,7 +430,7 @@ void Update()
             
             //十孔模式键位
             KeyCode.Q, KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
-            KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0,
+            KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.Keypad0,
             KeyCode.LeftBracket, KeyCode.C, KeyCode.M
         };
 
@@ -445,6 +445,34 @@ void Update()
         {
             _keyStates.Add(KeyCode.Alpha0, false);
         }
+        
+        // Debug日志：确认Alpha0键初始化
+        Debug.Log($"[ToneGenerator] Alpha0键已初始化到_keyStates字典中");
+        Debug.Log($"[ToneGenerator] _keyStates包含的键数量: {_keyStates.Count}");
+        Debug.Log($"[ToneGenerator] Alpha0键是否在字典中: {_keyStates.ContainsKey(KeyCode.Alpha0)}");
+    }
+
+    // 专门测试Alpha0键的方法
+    private void TestAlpha0Key()
+    {
+        if (isTenHoleMode && Input.GetKeyDown(KeyCode.Alpha0))
+        {
+            Debug.Log($"[ToneGenerator] *** Alpha0键按下测试 ***");
+            Debug.Log($"[ToneGenerator] Input.GetKey(Alpha0): {Input.GetKey(KeyCode.Alpha0)}");
+            Debug.Log($"[ToneGenerator] Input.GetKeyDown(Alpha0): {Input.GetKeyDown(KeyCode.Alpha0)}");
+            Debug.Log($"[ToneGenerator] _keyStates[Alpha0]: {_keyStates.GetValueOrDefault(KeyCode.Alpha0)}");
+            
+            // 测试一个简单的包含Alpha0的组合
+            bool testCombo = CheckExactKeys(KeyCode.R, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M);
+            Debug.Log($"[ToneGenerator] 测试组合 R+9+0+C+M: {testCombo}");
+            
+            // 测试各个键的状态
+            Debug.Log($"[ToneGenerator] R: {_keyStates.GetValueOrDefault(KeyCode.R)}");
+            Debug.Log($"[ToneGenerator] 9: {_keyStates.GetValueOrDefault(KeyCode.Alpha9)}");
+            Debug.Log($"[ToneGenerator] 0: {_keyStates.GetValueOrDefault(KeyCode.Alpha0)}");
+            Debug.Log($"[ToneGenerator] C: {_keyStates.GetValueOrDefault(KeyCode.C)}");
+            Debug.Log($"[ToneGenerator] M: {_keyStates.GetValueOrDefault(KeyCode.M)}");
+        }
     }
 
     private void UpdateKeyStates()
@@ -453,7 +481,36 @@ void Update()
         foreach (var k in keysSnapshot)
         {
             if (k == KeyCode.Space) continue;
-            _keyStates[k] = Input.GetKey(k);
+            bool previousState = _keyStates[k];
+            
+            // 对Alpha0键使用多种检测方法
+            if (k == KeyCode.Alpha0)
+            {
+                bool alpha0State = Input.GetKey(KeyCode.Alpha0);
+                // 也尝试检测数字键0的其他可能映射
+                bool keypad0State = Input.GetKey(KeyCode.Keypad0);
+                bool inputString0 = Input.inputString.Contains("0");
+                
+                _keyStates[k] = alpha0State || keypad0State;
+                
+                // Debug日志：追踪Alpha0键的状态变化
+                if (isTenHoleMode)
+                {
+                    if (previousState != _keyStates[k])
+                    {
+                        Debug.Log($"[ToneGenerator] Alpha0键状态变化: {previousState} -> {_keyStates[k]}");
+                        Debug.Log($"[ToneGenerator] Alpha0检测详情 - Alpha0: {alpha0State}, Keypad0: {keypad0State}, InputString: {inputString0}");
+                    }
+                    if (_keyStates[k])
+                    {
+                        Debug.Log($"[ToneGenerator] Alpha0键被按下！检测方法 - Alpha0: {alpha0State}, Keypad0: {keypad0State}");
+                    }
+                }
+            }
+            else
+            {
+                _keyStates[k] = Input.GetKey(k);
+            }
         }
 
         // 主线程更新空格键状态到私有变量
@@ -533,6 +590,25 @@ private float GetBaseFrequency()
         {
             if (isTenHoleMode)//十孔模式
             {
+                // Debug日志：追踪Alpha0键状态
+                if (_keyStates.GetValueOrDefault(KeyCode.Alpha0))
+                {
+                    Debug.Log($"[ToneGenerator] 十孔模式检测到Alpha0键被按下");
+                    Debug.Log($"[ToneGenerator] 当前所有按键状态: " +
+                        $"Q:{_keyStates.GetValueOrDefault(KeyCode.Q)} " +
+                        $"1:{_keyStates.GetValueOrDefault(KeyCode.Alpha1)} " +
+                        $"2:{_keyStates.GetValueOrDefault(KeyCode.Alpha2)} " +
+                        $"3:{_keyStates.GetValueOrDefault(KeyCode.Alpha3)} " +
+                        $"R:{_keyStates.GetValueOrDefault(KeyCode.R)} " +
+                        $"I:{_keyStates.GetValueOrDefault(KeyCode.I)} " +
+                        $"9:{_keyStates.GetValueOrDefault(KeyCode.Alpha9)} " +
+                        $"0:{_keyStates.GetValueOrDefault(KeyCode.Alpha0)} " +
+                        $"[:{_keyStates.GetValueOrDefault(KeyCode.LeftBracket)} " +
+                        $"C:{_keyStates.GetValueOrDefault(KeyCode.C)} " +
+                        $"M:{_keyStates.GetValueOrDefault(KeyCode.M)} " +
+                        $"Space:{_keyStates.GetValueOrDefault(KeyCode.Space)}");
+                }
+                
                 // 十孔模式按键检测 - 按优先级从高到低检测
                 // 使用精确按键组合检测，避免按键过多时检测失效
                 
@@ -945,11 +1021,25 @@ public float GetFrequency()
     // 精确匹配按键组合，确保只有指定的按键被按下，没有额外的按键
     private bool CheckExactKeys(params KeyCode[] keys)
     {
+        // Debug日志：当检查包含Alpha0键的组合时
+        bool containsAlpha0 = System.Array.IndexOf(keys, KeyCode.Alpha0) != -1;
+        if (containsAlpha0 && isTenHoleMode)
+        {
+            Debug.Log($"[ToneGenerator] 检查包含Alpha0的按键组合: [{string.Join(", ", keys)}]");
+            Debug.Log($"[ToneGenerator] Alpha0键状态: {_keyStates.GetValueOrDefault(KeyCode.Alpha0)}");
+        }
+        
         // 首先检查所有指定的按键是否都被按下
         foreach (KeyCode k in keys)
         {
             if (!_keyStates.TryGetValue(k, out bool state) || !state)
+            {
+                if (containsAlpha0 && isTenHoleMode)
+                {
+                    Debug.Log($"[ToneGenerator] 按键组合检查失败，缺少按键: {k}，状态: {state}");
+                }
                 return false;
+            }
         }
         
         // 然后检查是否有额外的十孔模式按键被按下
@@ -962,7 +1052,18 @@ public float GetFrequency()
         foreach (KeyCode k in tenHoleKeys)
         {
             if (_keyStates.GetValueOrDefault(k) && System.Array.IndexOf(keys, k) == -1)
+            {
+                if (containsAlpha0 && isTenHoleMode)
+                {
+                    Debug.Log($"[ToneGenerator] 按键组合检查失败，有额外按键: {k}");
+                }
                 return false; // 有额外的按键被按下
+            }
+        }
+        
+        if (containsAlpha0 && isTenHoleMode)
+        {
+            Debug.Log($"[ToneGenerator] 包含Alpha0的按键组合检查成功！");
         }
         
         return true;
