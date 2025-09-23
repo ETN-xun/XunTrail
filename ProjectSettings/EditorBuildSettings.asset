@@ -14,5 +14,11 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/ChallengeScene.unity
     guid: 77494ee4f7d258c4d87b2d09e627dfb5
+  - enabled: 1
+    path: Assets/Scenes/KeyChangeTen.unity
+    guid: 3528c09ee62999a4a866d27902dc7110
+  - enabled: 1
+    path: Assets/Scenes/KeyChangeEight.unity
+    guid: c4e9cebd9c234e846bec372bf93d9699
   m_configObjects:
     com.unity.adaptiveperformance.simulator.provider_settings: {fileID: 11400000, guid: 52990916dc8b31745b667abeb9c93820, type: 2}
