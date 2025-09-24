@@ -313,7 +313,8 @@ void Update()
 
         // 检测是否应该播放声音（必须按下空格键或手柄按键）
         bool anyNoteKeyPressed = CheckAnyNoteKey();
-        bool shouldPlaySound = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed||(isTenHoleMode&&CheckAnyKeys());
+        bool shouldPlaySound = _isSpacePressed || _isGamepadButtonPressed||(isTenHoleMode&&CheckAnyKeys());
+        Debug.Log(CheckAnyKeys());
         
         if (shouldPlaySound)
         {
@@ -507,18 +508,15 @@ void Update()
         bool anyNoteKeyPressed = CheckAnyNoteKey();
         if (isTenHoleMode)
         {
+            // 十孔模式：_isSpacePressed表示是否有任何音符按键被按下
             _isSpacePressed = CheckAnyKeys();
-        }
-        else
-        {
-            _isSpacePressed = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed;
-        }
-        if (isTenHoleMode)
-        {
+            // 十孔模式下空格键状态单独记录
             _keyStates[KeyCode.Space] = Input.GetKey(KeyCode.Space);
         }
         else
         {
+            // 八孔模式：_isSpacePressed表示是否按下吹气键（空格键或手柄）
+            _isSpacePressed = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed;
             _keyStates[KeyCode.Space] = _isSpacePressed;
         }
     }
@@ -957,79 +955,16 @@ private bool CheckAnyKeys()
     {
         if (isTenHoleMode)
         {
-            // 使用精确按键组合检测，按优先级从高到低检测（使用动态键位）
+            // 检查是否有任何十孔相关的按键被按下（使用动态键位）
             // 十孔键位映射：Q=0, 1=1, 2=2, 3=3, R=4, I=5, 9=6, 0=7, [=8, C=9, M=10, Space=11
-            
-            // 低音5 - Q+2+3+R+I+9+0+[+C+M
-            if (CheckDynamicKeys(true, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10))
-                return true;
-            // 低音5# - 1+2+3+R+I+9+0+[+C+M
-            else if (CheckDynamicKeys(true, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10))
-                return true;
-            // 低音6 - 2+3+R+I+9+0+[+C+M
-            else if (CheckDynamicKeys(true, 2, 3, 4, 5, 6, 7, 8, 9, 10))
-                return true;
-            // 低音6# - Q+2+3+R+I+9+[+C+M
-            else if (CheckDynamicKeys(true, 0, 2, 3, 4, 5, 6, 8, 9, 10))
-                return true;
-            // 低音7 - Q+2+3+R+I+9+0+C+M
-            else if (CheckDynamicKeys(true, 0, 2, 3, 4, 5, 6, 7, 9, 10))
-                return true;
-            // 中音1 - 2+3+R+I+9+0+C+M
-            else if (CheckDynamicKeys(true, 2, 3, 4, 5, 6, 7, 9, 10))
-                return true;
-            // 中音1# - Q+2+3+R+I+9+C+M
-            else if (CheckDynamicKeys(true, 0, 2, 3, 4, 5, 6, 9, 10))
-                return true;
-            // 中音2 - 2+3+R+I+9+C+M
-            else if (CheckDynamicKeys(true, 2, 3, 4, 5, 6, 9, 10))
-                return true;
-            // 中音2# - Q+2+3+R+I+C+M
-            else if (CheckDynamicKeys(true, 0, 2, 3, 4, 5, 9, 10))
-                return true;
-            // 中音3 - 2+3+R+I+C+M
-            else if (CheckDynamicKeys(true, 2, 3, 4, 5, 9, 10))
-                return true;
-            // 中音4 - 2+3+R+9+0+C+M
-            else if (CheckDynamicKeys(true, 2, 3, 4, 6, 7, 9, 10))
-                return true;
-            // 中音4# - 2+3+R+9+C+M
-            else if (CheckDynamicKeys(true, 2, 3, 4, 6, 9, 10))
-                return true;
-            // 中音5 - 2+3+R+C+M
-            else if (CheckDynamicKeys(true, 2, 3, 4, 9, 10))
-                return true;
-            // 中音5# - 3+R+9+C+M
-            else if (CheckDynamicKeys(true, 3, 4, 6, 9, 10))
-                return true;
-            // 中音6 - 3+R+C+M
-            else if (CheckDynamicKeys(true, 3, 4, 9, 10))
-                return true;
-            // 中音6# - R+9+0+C+M
-            else if (CheckDynamicKeys(true, 4, 6, 7, 9, 10))
-                return true;
-            // 中音7 - R+C+M
-            else if (CheckDynamicKeys(true, 4, 9, 10))
-                return true;
-            // 高音1 - C+M
-            else if (CheckDynamicKeys(true, 9, 10))
-                return true;
-            // 高音1# - 3+M
-            else if (CheckDynamicKeys(true, 3, 10))
-                return true;
-            // 高音2 - M
-            else if (CheckDynamicKeys(true, 10))
-                return true;
-            // 高音2# - 3
-            else if (CheckDynamicKeys(true, 3))
-                return true;
-            // 高音3 - 空格键
-            else if (CheckDynamicKeys(true, 11))
-                return true;
-            else
+            for (int i = 0; i < currentTenHoleKeys.Length; i++)
             {
-                return false; // 默认高音1
+                if (_keyStates.GetValueOrDefault(currentTenHoleKeys[i]))
+                {
+                    return true;
+                }
             }
+            return false;
         }
         else
         {
@@ -1344,7 +1279,7 @@ private string GetNoteName(float frequency)
                     return "高音2";
                 else if (CheckDynamicKeys(true, 2))
                     return "高音2♯";
-                else if (CheckDynamicKeys(true, -1)) // 空格键，使用特殊索引
+                else if (CheckDynamicKeys(true, 11)) // 空格键，索引11
                     return "高音3";
             }
             else
@@ -1705,7 +1640,7 @@ void CheckNoteForChallenge()
         }
         else
         {
-            isBlowing = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed;
+            isBlowing = _isSpacePressed || _isGamepadButtonPressed ||(isTenHoleMode&&CheckAnyKeys());
         }
 
         if (!isBlowing)
