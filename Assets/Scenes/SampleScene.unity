@@ -1414,6 +1414,29 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 5946c7c66558a4f4d99410debaaa50b7, type: 3}
   - {fileID: 21300000, guid: 900c4c3697c0dab43925e3f991c7f2b0, type: 3}
   - {fileID: 21300000, guid: 376cfa72412f13146a69c176131004af, type: 3}
+  tenHole:
+  - {fileID: 21300000, guid: 539c9353bad5d054a8a22fe458246045, type: 3}
+  - {fileID: 21300000, guid: f890ecf9664bc0d41964ed7aceb6b83e, type: 3}
+  - {fileID: 21300000, guid: 9b479c2cf67e36143aefcfc74eb31cc2, type: 3}
+  - {fileID: 21300000, guid: 6917f14768c13ab41830422bf87c66f0, type: 3}
+  - {fileID: 21300000, guid: 0ee8e93a12ed90548aa3fd80e5702aef, type: 3}
+  - {fileID: 21300000, guid: d75256688ce788e43b62d98c188b36b5, type: 3}
+  - {fileID: 21300000, guid: b94158c8f33c37d47aa87c2b61f8799e, type: 3}
+  - {fileID: 21300000, guid: 4f618343bff6eef45a93c83d979d0bdf, type: 3}
+  - {fileID: 21300000, guid: a3b1fd5f583ba5f4dbd9a5ce7e4ed776, type: 3}
+  - {fileID: 21300000, guid: 1b844b83750ce4246a6ea9f236f6e4e5, type: 3}
+  - {fileID: 21300000, guid: 00638a611d0b3af478307cf62c8b52ff, type: 3}
+  - {fileID: 21300000, guid: 33fdec921acec5546a88e79bed70c420, type: 3}
+  - {fileID: 21300000, guid: 8d35f6c7784bbea43960dc8e9fa5bd85, type: 3}
+  - {fileID: 21300000, guid: 604b2091a32e56a4dae40d87443613e7, type: 3}
+  - {fileID: 21300000, guid: 485165b46b5cef04ea047d3e7ae716d8, type: 3}
+  - {fileID: 21300000, guid: 7c9cfa05ab1ae5f4a94fca91a7120e2c, type: 3}
+  - {fileID: 21300000, guid: 5f8061c003185a242b8cad7f368b3eec, type: 3}
+  - {fileID: 21300000, guid: b925ede873d1d214a87b211c26eb4c4e, type: 3}
+  - {fileID: 21300000, guid: f046df0b102f95f498e0701046db816e, type: 3}
+  - {fileID: 21300000, guid: 23ce73a9883bdd64787be6721ffbbc8e, type: 3}
+  - {fileID: 21300000, guid: faf6e5d1877a4dc4593079c2ad692bd5, type: 3}
+  - {fileID: 21300000, guid: 3ac08aae42f98c54ca2639bfedb1bc3c, type: 3}
   text: {fileID: 1882688797}
   OttaText: {fileID: 1847513823}
   ottava: 0

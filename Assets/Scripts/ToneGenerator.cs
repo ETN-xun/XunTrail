@@ -24,6 +24,7 @@ public class ToneGenerator : MonoBehaviour
     public bool isTenHoleMode = false;
     
     public List<Sprite> eightHole = new List<Sprite>();
+    public List<Sprite> tenHole = new List<Sprite>();
 
     private AudioSource audioSource;
     private double currentPhaseD = 0.0;
@@ -129,6 +130,9 @@ void Start()
         // 从KeySettingsManager加载当前键位设置
         currentEightHoleKeys = KeySettingsManager.Instance.GetEightHoleKeys();
         currentTenHoleKeys = KeySettingsManager.Instance.GetTenHoleKeys();
+        
+        // 重新初始化键位状态以包含新的键位
+        InitializeKeyStates();
         
         Debug.Log("ToneGenerator已加载动态键位设置");
         Debug.Log($"八孔键位: {string.Join(", ", currentEightHoleKeys)}");
@@ -306,8 +310,15 @@ void Update()
 
         if (xunAnimator != null)
             xunAnimator.SetInteger("tone", animatorState);
-        
-        GetComponent<Image>().sprite=eightHole[animatorState];
+
+        if (isTenHoleMode)
+        {
+            GetComponent<Image>().sprite = tenHole[animatorState];
+        }
+        else
+        {
+            GetComponent<Image>().sprite = eightHole[animatorState];
+        }
 
         UpdateUI(adjustedFrequency);
 
@@ -518,24 +529,41 @@ void Update()
 
     private void InitializeKeyStates()
     {
-        var keys = new KeyCode[]{
-            //八孔模式键位
-            KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-            KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon,
-            KeyCode.P, KeyCode.Comma, KeyCode.Period, KeyCode.Space,
-            KeyCode.LeftArrow, KeyCode.RightArrow,
-            
-            //十孔模式键位
-            KeyCode.Q, KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R,
-            KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0,
-            KeyCode.LeftBracket, KeyCode.C, KeyCode.M
+        // 清空现有的键位状态
+        _keyStates.Clear();
+        
+        // 添加八孔模式的动态键位
+        if (currentEightHoleKeys != null)
+        {
+            foreach (var k in currentEightHoleKeys)
+            {
+                if (!_keyStates.ContainsKey(k))
+                    _keyStates.Add(k, false);
+            }
+        }
+        
+        // 添加十孔模式的动态键位
+        if (currentTenHoleKeys != null)
+        {
+            foreach (var k in currentTenHoleKeys)
+            {
+                if (!_keyStates.ContainsKey(k))
+                    _keyStates.Add(k, false);
+            }
+        }
+        
+        // 添加一些通用键位（方向键等）
+        var commonKeys = new KeyCode[]{
+            KeyCode.LeftArrow, KeyCode.RightArrow, KeyCode.Comma, KeyCode.Period
         };
-
-        foreach (var k in keys)
+        
+        foreach (var k in commonKeys)
         {
             if (!_keyStates.ContainsKey(k))
                 _keyStates.Add(k, false);
         }
+        
+        Debug.Log($"键位状态已初始化，共{_keyStates.Count}个键位");
     }
 
     private void UpdateKeyStates()
@@ -1029,7 +1057,77 @@ private bool CheckAnyKeys()
     {
         if (isTenHoleMode)
         {
-            return 17;
+                            // 使用动态键位设置，按优先级从高到低检测
+                // 低音5 - 使用动态键位
+                if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
+                    return 0;
+                // 低音5# - 使用动态键位
+                else if (CheckDynamicKeys(true, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9))
+                    return 1;
+                // 低音6 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 5, 6, 7, 8, 9))
+                    return 2;
+                // 低音6# - 使用动态键位
+                else if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 5, 7, 8, 9))
+                    return 3;
+                // 低音7 - 使用动态键位
+                else if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 5, 6, 8, 9))
+                    return 4;
+                // 中音1 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 5, 6, 8, 9))
+                    return 5;
+                // 中音1# - 使用动态键位
+                else if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 5, 8, 9))
+                    return 6;
+                // 中音2 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 5, 8, 9))
+                    return 7;
+                // 中音2# - 使用动态键位
+                else if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 8, 9))
+                    return 8;
+                // 中音3 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 8, 9))
+                    return 9;
+                // 中音4 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 5, 6, 8, 9))
+                    return 10;
+                // 中音4# - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 5, 8, 9))
+                    return 11;
+                // 中音5 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 8, 9))
+                    return 12;
+                // 中音5# - 使用动态键位
+                else if (CheckDynamicKeys(true, 2, 3, 5, 8, 9))
+                    return 13;
+                // 中音6 - 使用动态键位
+                else if (CheckDynamicKeys(true, 2, 3, 8, 9))
+                    return 14;
+                // 中音6# - 使用动态键位
+                else if (CheckDynamicKeys(true, 3, 5, 6, 8, 9))
+                    return 15;
+                // 中音7 - 使用动态键位
+                else if (CheckDynamicKeys(true, 3, 8, 9))
+                    return 16;
+                // 高音1 - 使用动态键位
+                else if (CheckDynamicKeys(true, 8, 9))
+                    return 17;
+                // 高音1# - 使用动态键位
+                else if (CheckDynamicKeys(true, 2, 9))
+                    return 18;
+                // 高音2 - 使用动态键位
+                else if (CheckDynamicKeys(true, 9))
+                    return 19;
+                // 高音2# - 使用动态键位
+                else if (CheckDynamicKeys(true, 2))
+                    return 20;
+                // 高音3 - 使用动态键位
+                else if (CheckDynamicKeys(true, 11))
+                    return 21;
+                else
+                {
+                    return 21; // 默认高音1
+                }
         }
         else
         {
