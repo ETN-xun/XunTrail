@@ -229,6 +229,20 @@ void Start()
         return noteNames[noteIndex] + octave;
     }
 
+    private KeyCode GetBreathKey()
+    {
+        // 八孔模式：吹气键是第10个键位（索引9）
+        // 十孔模式：吹气键是第12个键位（索引11）
+        if (isTenHoleMode)
+        {
+            return currentTenHoleKeys != null && currentTenHoleKeys.Length > 11 ? currentTenHoleKeys[11] : KeyCode.Space;
+        }
+        else
+        {
+            return currentEightHoleKeys != null && currentEightHoleKeys.Length > 9 ? currentEightHoleKeys[9] : KeyCode.Space;
+        }
+    }
+
 private void ConfigureAudioComponents()
     {
         if (_lowPassFilter == null || _highPassFilter == null) return;
@@ -568,28 +582,30 @@ void Update()
 
     private void UpdateKeyStates()
     {
+        KeyCode breathKey = GetBreathKey();
+        
         List<KeyCode> keysSnapshot = new List<KeyCode>(_keyStates.Keys);
         foreach (var k in keysSnapshot)
         {
-            if (k == KeyCode.Space) continue;
+            if (k == breathKey) continue; // 跳过吹气键，单独处理
             bool previousState = _keyStates[k];
                 _keyStates[k] = Input.GetKey(k);
         }
 
-        // 主线程更新空格键状态到私有变量
+        // 主线程更新吹气键状态到私有变量
         bool anyNoteKeyPressed = CheckAnyNoteKey();
         if (isTenHoleMode)
         {
             // 十孔模式：_isSpacePressed表示是否有任何音符按键被按下
             _isSpacePressed = CheckAnyKeys();
-            // 十孔模式下空格键状态单独记录
-            _keyStates[KeyCode.Space] = Input.GetKey(KeyCode.Space);
+            // 十孔模式下吹气键状态单独记录
+            _keyStates[breathKey] = Input.GetKey(breathKey);
         }
         else
         {
-            // 八孔模式：_isSpacePressed表示是否按下吹气键（空格键或手柄）
-            _isSpacePressed = Input.GetKey(KeyCode.Space) || _isGamepadButtonPressed;
-            _keyStates[KeyCode.Space] = _isSpacePressed;
+            // 八孔模式：_isSpacePressed表示是否按下吹气键（动态吹气键或手柄）
+            _isSpacePressed = Input.GetKey(breathKey) || _isGamepadButtonPressed;
+            _keyStates[breathKey] = _isSpacePressed;
         }
     }
 
