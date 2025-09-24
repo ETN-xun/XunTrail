@@ -58,6 +58,13 @@ public class SampleSceneManager : MonoBehaviour
     {
         Debug.Log("SampleSceneManager: 检测到ESC键，重启游戏并回到标题画面");
         
+        // 强制停止任何正在进行的挑战
+        if (ChallengeManager.Instance != null)
+        {
+            ChallengeManager.Instance.ForceStopChallenge();
+            Debug.Log("SampleSceneManager: 已强制停止挑战");
+        }
+        
         // 停止所有音频
         AudioSource[] audioSources = FindObjectsOfType<AudioSource>();
         foreach (AudioSource audioSource in audioSources)
@@ -72,6 +79,13 @@ public class SampleSceneManager : MonoBehaviour
         if (ChallengeDataManager.Instance != null)
         {
             ChallengeDataManager.Instance.SetSelectedMusicSheet(null);
+        }
+        
+        // 重置游戏模式为自由模式
+        if (GameModeManager.Instance != null)
+        {
+            GameModeManager.Instance.SetFreeMode();
+            Debug.Log("SampleSceneManager: 已重置为自由模式");
         }
         
         // 加载标题场景
@@ -163,6 +177,21 @@ public class SampleSceneManager : MonoBehaviour
     
     private void SetupFreeMode()
     {
+        Debug.Log("SampleSceneManager: 设置自由模式");
+        
+        // 停止任何正在进行的挑战
+        if (ChallengeManager.Instance != null)
+        {
+            ChallengeManager.Instance.ForceStopChallenge();
+            Debug.Log("SampleSceneManager: 已强制停止挑战模式");
+        }
+        
+        // 确保游戏模式设置为自由模式
+        if (GameModeManager.Instance != null)
+        {
+            GameModeManager.Instance.SetFreeMode();
+        }
+        
         // 在自由模式下显示基本UI
         if (challengeUI != null)
         {
@@ -188,6 +217,8 @@ public class SampleSceneManager : MonoBehaviour
         {
             progressSlider.value = 0;
         }
+        
+        Debug.Log("SampleSceneManager: 自由模式设置完成");
     }
     
     private void StartChallengeMode(MusicSheet musicSheet)
@@ -209,10 +240,24 @@ public class SampleSceneManager : MonoBehaviour
     {
         Debug.Log("SampleSceneManager: 返回挑战选择界面");
         
+        // 强制停止任何正在进行的挑战
+        if (ChallengeManager.Instance != null)
+        {
+            ChallengeManager.Instance.ForceStopChallenge();
+            Debug.Log("SampleSceneManager: 已强制停止挑战");
+        }
+        
         // 清除选中的乐谱
         if (ChallengeDataManager.Instance != null)
         {
             ChallengeDataManager.Instance.SetSelectedMusicSheet(null);
+        }
+        
+        // 重置游戏模式为自由模式（等待重新选择挑战）
+        if (GameModeManager.Instance != null)
+        {
+            GameModeManager.Instance.SetFreeMode();
+            Debug.Log("SampleSceneManager: 已重置为自由模式，等待重新选择挑战");
         }
         
         SceneManager.LoadScene("ChallengeScene");
@@ -223,10 +268,24 @@ public class SampleSceneManager : MonoBehaviour
     {
         Debug.Log("SampleSceneManager: 返回主菜单");
         
+        // 强制停止任何正在进行的挑战
+        if (ChallengeManager.Instance != null)
+        {
+            ChallengeManager.Instance.ForceStopChallenge();
+            Debug.Log("SampleSceneManager: 已强制停止挑战");
+        }
+        
         // 清除选中的乐谱
         if (ChallengeDataManager.Instance != null)
         {
             ChallengeDataManager.Instance.SetSelectedMusicSheet(null);
+        }
+        
+        // 重置游戏模式为自由模式
+        if (GameModeManager.Instance != null)
+        {
+            GameModeManager.Instance.SetFreeMode();
+            Debug.Log("SampleSceneManager: 已重置为自由模式");
         }
         
         SceneManager.LoadScene("TitleScene");

@@ -575,6 +575,50 @@ private void EndCountdown()
         // 音调生成器会在没有按键时自动停止
     }
     
+    // 强制停止挑战（不显示结果，用于场景切换时清理状态）
+    public void ForceStopChallenge()
+    {
+        Debug.Log("强制停止挑战");
+        
+        isInChallenge = false;
+        isCountingDown = false;
+        challengeCompleted = true;
+        
+        // 取消所有延迟调用
+        CancelInvoke();
+        
+        // 重置状态
+        currentNoteIndex = 0;
+        currentChallengeTime = 0f;
+        correctPlayTime = 0f;
+        totalMusicDuration = 0f;
+        currentExpectedNote = "";
+        currentTargetNote = "";
+        
+        // 清理数据
+        playerPerformance.Clear();
+        noteSequence.Clear();
+        timedNoteSequence.Clear();
+        
+        // 清理UI显示
+        if (countdownText != null)
+            countdownText.text = "";
+        if (progressText != null)
+            progressText.text = "";
+        if (upcomingNotesText != null)
+            upcomingNotesText.text = "";
+        if (scoreText != null)
+            scoreText.text = "";
+        if (progressSlider != null)
+            progressSlider.value = 0f;
+            
+        // 隐藏挑战UI
+        if (challengeUI != null)
+            challengeUI.SetActive(false);
+            
+        Debug.Log("挑战状态已完全重置");
+    }
+    
     // 更新当前期望的音符
     private void UpdateCurrentExpectedNote()
     {

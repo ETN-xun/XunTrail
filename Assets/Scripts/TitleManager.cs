@@ -58,6 +58,21 @@ void Start()
 public void OnFreeModeClicked()
     {
         Debug.Log("点击了自由模式按钮");
+        
+        // 清除挑战模式状态
+        if (ChallengeDataManager.Instance != null)
+        {
+            ChallengeDataManager.Instance.SetSelectedMusicSheet(null);
+            Debug.Log("TitleManager: 已清除挑战模式的选中乐谱");
+        }
+        
+        // 设置游戏模式为自由模式
+        if (GameModeManager.Instance != null)
+        {
+            GameModeManager.Instance.SetFreeMode();
+            Debug.Log("TitleManager: 已设置为自由模式");
+        }
+        
         // 加载自由模式场景（SampleScene）
         SceneManager.LoadScene("SampleScene");
     }
@@ -85,6 +100,21 @@ public void OnChallengeModeClicked()
         try
         {
             Debug.Log("挑战模式按钮被点击");
+            
+            // 确保清除之前的状态
+            if (ChallengeDataManager.Instance != null)
+            {
+                ChallengeDataManager.Instance.SetSelectedMusicSheet(null);
+                Debug.Log("TitleManager: 已清除之前的挑战模式状态");
+            }
+            
+            // 设置游戏模式为挑战模式（暂时设置，具体乐谱在ChallengeScene中选择）
+            if (GameModeManager.Instance != null)
+            {
+                GameModeManager.Instance.SetFreeMode(); // 先设为自由模式，等选择乐谱后再设为挑战模式
+                Debug.Log("TitleManager: 准备进入挑战模式选择界面");
+            }
+            
             SceneManager.LoadScene("ChallengeScene");
         }
         catch (System.Exception e)
