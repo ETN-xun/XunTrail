@@ -106,34 +106,24 @@ public class KeySettingsManager : MonoBehaviour
     {
         if (currentSettings != null)
         {
-            string json = JsonUtility.ToJson(currentSettings);
-            PlayerPrefs.SetString(SAVE_KEY, json);
-            PlayerPrefs.Save();
-            Debug.Log("键位设置已保存");
+            // 使用新的持久化系统保存
+            bool success = KeySettingsPersistence.SaveKeySettings(currentSettings);
+            if (success)
+            {
+                Debug.Log("键位设置已保存到文件和PlayerPrefs");
+            }
+            else
+            {
+                Debug.LogError("键位设置保存失败");
+            }
         }
     }
     
     public void LoadKeySettings()
     {
-        if (PlayerPrefs.HasKey(SAVE_KEY))
-        {
-            string json = PlayerPrefs.GetString(SAVE_KEY);
-            try
-            {
-                currentSettings = JsonUtility.FromJson<KeySettings>(json);
-                Debug.Log("键位设置已加载");
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogWarning("加载键位设置失败，使用默认设置: " + e.Message);
-                currentSettings = new KeySettings();
-            }
-        }
-        else
-        {
-            currentSettings = new KeySettings();
-            Debug.Log("使用默认键位设置");
-        }
+        // 使用新的持久化系统加载
+        currentSettings = KeySettingsPersistence.LoadKeySettings();
+        Debug.Log("键位设置已从文件或PlayerPrefs加载");
     }
     
     public void ResetToDefault()
@@ -175,5 +165,36 @@ public class KeySettingsManager : MonoBehaviour
         }
         
         return conflicts;
+    }
+    
+    /// <summary>
+    /// 获取键位设置文件信息
+    /// </summary>
+    public string GetSettingsInfo()
+    {
+        return KeySettingsPersistence.GetSettingsInfo();
+    }
+    
+    /// <summary>
+    /// 清除所有保存的键位设置
+    /// </summary>
+    public void ClearAllSettings()
+    {
+        KeySettingsPersistence.ClearAllSettings();
+        currentSettings = new KeySettings();
+        Debug.Log("所有键位设置已清除，重置为默认设置");
+    }
+    
+    /// <summary>
+    /// 强制重新保存当前设置（用于修复损坏的保存文件）
+    /// </summary>
+    public void ForceSave()
+    {
+        if (currentSettings == null)
+        {
+            currentSettings = new KeySettings();
+        }
+        SaveKeySettings();
+        Debug.Log("强制保存键位设置完成");
     }
 }
