@@ -293,6 +293,12 @@ void Update()
         UpdateKeyStates();
         UpdateGamepadStates();
         HandleOctaveInput();
+        
+        // 检测音频异常状态并重置
+        if (IsAudioStateAbnormal())
+        {
+            ResetAudioState();
+        }
 
         float baseFrequency = GetBaseFrequency();
         float adjustedFrequency = GetFrequency();
@@ -356,6 +362,9 @@ void Update()
         if (!_lowPassFilter || !_highPassFilter || !_echoFilter || !_reverbFilter)
         {
             Debug.LogError("音频组件未正确初始化！");
+            // 清空数据防止噪音
+            for (int i = 0; i < data.Length; i++)
+                data[i] = 0f;
             return;
         }
 
@@ -374,6 +383,13 @@ void Update()
             float.MaxValue,
             deltaTime);
 
+        // 添加数值安全检查
+        if (!float.IsFinite(_gain) || _gain < 0f)
+        {
+            _gain = 0f;
+            _gainVelocity = 0f;
+        }
+
         float freqSmoothTime = _isSpacePressed ? frequencyFadeTime : frequencyFadeTime * 0.3f;
         
         // 添加频率变化检测和相位调整
@@ -388,13 +404,23 @@ void Update()
             float.MaxValue,
             deltaTime);
             
+        // 添加频率安全检查
+        if (!float.IsFinite(_currentFrequency) || _currentFrequency < 20f || _currentFrequency > 20000f)
+        {
+            _currentFrequency = Mathf.Clamp(_targetFrequency, 20f, 20000f);
+            _frequencyVelocity = 0f;
+        }
+            
         // 改进相位调整逻辑，防止频率变化时的相位跳变
-        if (Mathf.Abs(previousFrequency - _currentFrequency) > 0.01f) {
-            // 使用更精确的相位连续性计算
-            double phaseRatio = _currentFrequency / previousFrequency;
-            currentPhaseD = (currentPhaseD * phaseRatio) % (2.0 * Mathf.PI);
-            // 确保相位值始终为正
-            if (currentPhaseD < 0) currentPhaseD += 2.0 * Mathf.PI;
+        if (Mathf.Abs(previousFrequency - _currentFrequency) > 0.01f && previousFrequency > 0.01f) {
+            // 使用更安全的相位连续性计算
+            double phaseRatio = (double)_currentFrequency / (double)previousFrequency;
+            if (double.IsFinite(phaseRatio) && phaseRatio > 0.1 && phaseRatio < 10.0) {
+                currentPhaseD = (currentPhaseD * phaseRatio) % (2.0 * Mathf.PI);
+                // 确保相位值始终为正且有限
+                if (currentPhaseD < 0 || !double.IsFinite(currentPhaseD)) 
+                    currentPhaseD = 0.0;
+            }
         }
 
         double stepD = (2.0 * Mathf.PI) * _currentFrequency / sampleRate;
@@ -423,6 +449,10 @@ void Update()
 
         for (int i = 0; i < data.Length; i += channels)
         {
+            // 确保相位值安全
+            if (!double.IsFinite(currentPhaseD))
+                currentPhaseD = 0.0;
+                
             float phase = (float)(currentPhaseD % (2f * Mathf.PI));
             float baseWave = GenerateXunWave(phase);
 
@@ -430,10 +460,18 @@ void Update()
             float noise = _isSpacePressed ? GenerateAirNoise(deltaTime) : 0f;
             float totalSignal = baseWave + noise;
 
+            // 添加数值安全检查
+            if (!float.IsFinite(totalSignal))
+                totalSignal = 0f;
+
             totalSignal = WaveShaping(totalSignal, deltaTime);
 
             // 添加平滑过渡，防止爆音
             float newSample = _gain * totalSignal * antiClickGain;
+            
+            // 数值安全检查
+            if (!float.IsFinite(newSample))
+                newSample = 0f;
             
             // 根据频率变化程度动态调整平滑系数
             float transitionFactor = 0.0f;
@@ -459,6 +497,11 @@ void Update()
                 newSample = previousSample * (1.0f - antiClickFactor) + newSample * antiClickFactor;
             }
 
+            // 最终数值安全检查和限幅
+            if (!float.IsFinite(newSample))
+                newSample = 0f;
+            newSample = Mathf.Clamp(newSample, -1f, 1f);
+
             for (int c = 0; c < channels; c++)
                 data[i + c] = newSample;
 
@@ -466,8 +509,9 @@ void Update()
             currentPhaseD += stepD;
         }
 
-        if (currentPhaseD > 2 * Mathf.PI * 1000)
-            currentPhaseD -= 2 * Mathf.PI * 1000;
+        // 更安全的相位重置逻辑
+        if (currentPhaseD > 2 * Mathf.PI * 100 || !double.IsFinite(currentPhaseD))
+            currentPhaseD = currentPhaseD % (2 * Mathf.PI);
 
         _previousSample = previousSample;
     }
@@ -1468,8 +1512,16 @@ private string GetNoteName(float frequency)
         float modFrequency = breathPressure * 0.06f;
         float breathMod = Mathf.Sin(2f * Mathf.PI * modFrequency * _time) * 0.18f;
 
-        _noiseSeed = (_noiseSeed * 16807 + 2147483647) & 0xFFFFFFFF;
-        float randomFactor = (float)(_noiseSeed & 0xFFFFFFFF) / (float)0xFFFFFFFF;
+        // 使用更安全的随机数生成，防止溢出
+        _noiseSeed = (_noiseSeed * 16807u) % 2147483647u;
+        if (_noiseSeed == 0) _noiseSeed = 1; // 防止种子为0
+        
+        float randomFactor = (float)_noiseSeed / 2147483647f;
+        
+        // 添加数值安全检查
+        if (!float.IsFinite(randomFactor))
+            randomFactor = 0.5f;
+            
         float spikeNoise = randomFactor < 0.003f * breathPressure ?
             Mathf.Sin(2f * Mathf.PI * 1000f * _time) * 0.03f : 0f;
 
@@ -1488,8 +1540,17 @@ private string GetNoteName(float frequency)
 
     private float WaveShaping(float sample, float deltaTime)
     {
+        // 输入数值安全检查
+        if (!float.IsFinite(sample))
+            return 0f;
+            
         float pressure = Mathf.Clamp01(_gain * 5f);
         float damping = Mathf.Exp(-pressure * 0.6f * (_currentFrequency / 1000f));
+        
+        // 确保damping值安全
+        if (!float.IsFinite(damping) || damping <= 0f)
+            damping = 1f;
+            
         sample *= damping;
 
         // 改进动态限幅，防止爆音
@@ -1507,6 +1568,11 @@ private string GetNoteName(float frequency)
         
         // 频率变化时应用更强的软限幅
         float freqChangeAmount = Mathf.Abs(_frequencyVelocity) / Mathf.Max(0.1f, _currentFrequency);
+        
+        // 确保freqChangeAmount值安全
+        if (!float.IsFinite(freqChangeAmount))
+            freqChangeAmount = 0f;
+            
         float softClipMix = Mathf.Lerp(0.1f, 0.5f, Mathf.Clamp01(freqChangeAmount * 8f));
         
         // 初始吹奏时也应用更强的软限幅
@@ -1516,13 +1582,25 @@ private string GetNoteName(float frequency)
         
         sample = (softClip * softClipMix) + (sample * (1f - softClipMix));
 
+        // 数值安全检查
+        if (!float.IsFinite(sample))
+            sample = 0f;
+
         // 线程安全的输入检测（使用缓存变量）
         if (!_isSpacePressed)
         {
             float decayExponent = _currentFrequency < 400f ? 0.2f : 0.6f;
-            return sample * Mathf.Pow(0.5f, decayExponent * (float)(AudioSettings.dspTime * 2));
+            float decayFactor = Mathf.Pow(0.5f, decayExponent * (float)(AudioSettings.dspTime * 2));
+            
+            // 确保衰减因子安全
+            if (!float.IsFinite(decayFactor))
+                decayFactor = 0f;
+                
+            return sample * decayFactor;
         }
-        return sample;
+        
+        // 最终限幅保护
+        return Mathf.Clamp(sample, -1f, 1f);
     }
     
     // 检测手柄连接状态
@@ -1693,5 +1771,32 @@ void CheckNoteForChallenge()
         }
         
         return result;
+    }
+    
+    // 重置音频状态，防止异常状态导致的爆音或静音
+    private void ResetAudioState()
+    {
+        _gain = 0f;
+        _gainVelocity = 0f;
+        _currentFrequency = 440f;
+        _frequencyVelocity = 0f;
+        _previousSample = 0f;
+        currentPhaseD = 0.0;
+        _noiseSeed = 123456789;
+        _previousSmoothNoise = 0f;
+        _noiseValueDamp = 0f;
+        
+        Debug.Log("音频状态已重置");
+    }
+    
+    // 检测音频异常状态
+    private bool IsAudioStateAbnormal()
+    {
+        return !float.IsFinite(_gain) || 
+               !float.IsFinite(_currentFrequency) || 
+               !double.IsFinite(currentPhaseD) ||
+               Mathf.Abs(_previousSample) > 2f ||
+               _gain < 0f ||
+               _currentFrequency < 10f || _currentFrequency > 25000f;
     }
 }
