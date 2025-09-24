@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
@@ -93,6 +93,10 @@ public int key = 0;
     // 在ToneGenerator类中添加：
     public static ToneGenerator Instance { get; private set; }
     
+    // 动态键位设置
+    private KeyCode[] currentEightHoleKeys;
+    private KeyCode[] currentTenHoleKeys;
+    
     void Awake() {
         Instance = this; // 单例模式
         _lowPassFilter = GetOrAddComponent<AudioLowPassFilter>();
@@ -103,6 +107,9 @@ public int key = 0;
 
 void Start()
     {
+        // 加载动态键位设置
+        LoadDynamicKeySettings();
+        
         InitializeKeyStates();
         InitializeAudioComponents();
         
@@ -115,6 +122,43 @@ void Start()
         {
             Debug.Log("找到ChallengeManager，挑战模式功能已启用");
         }
+    }
+    
+    public void LoadDynamicKeySettings()
+    {
+        // 从KeySettingsManager加载当前键位设置
+        currentEightHoleKeys = KeySettingsManager.Instance.GetEightHoleKeys();
+        currentTenHoleKeys = KeySettingsManager.Instance.GetTenHoleKeys();
+        
+        Debug.Log("ToneGenerator已加载动态键位设置");
+        Debug.Log($"八孔键位: {string.Join(", ", currentEightHoleKeys)}");
+        Debug.Log($"十孔键位: {string.Join(", ", currentTenHoleKeys)}");
+    }
+    
+    // 将硬编码的键位索引转换为动态键位
+    private KeyCode GetDynamicKey(int keyIndex, bool isTenHole)
+    {
+        KeyCode[] keys = isTenHole ? currentTenHoleKeys : currentEightHoleKeys;
+        if (keyIndex >= 0 && keyIndex < keys.Length)
+        {
+            return keys[keyIndex];
+        }
+        
+        // 如果索引超出范围，返回默认键位
+        Debug.LogWarning($"键位索引 {keyIndex} 超出范围，使用默认键位");
+        return KeyCode.None;
+    }
+    
+    // 检查动态键位组合
+    private bool CheckDynamicKeys(bool isTenHole, params int[] keyIndices)
+    {
+        KeyCode[] keysToCheck = new KeyCode[keyIndices.Length];
+        for (int i = 0; i < keyIndices.Length; i++)
+        {
+            keysToCheck[i] = GetDynamicKey(keyIndices[i], isTenHole);
+        }
+        
+        return CheckKeys(keysToCheck);
     }
 
     private void InitializeAudioComponents()
@@ -148,14 +192,18 @@ void Start()
     // 检测是否有任何音符键被按下
     private bool CheckAnyNoteKey()
     {
-        // 检查所有音符键
-        return Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.F) ||
-               Input.GetKey(KeyCode.J) || Input.GetKey(KeyCode.I) || Input.GetKey(KeyCode.O) || Input.GetKey(KeyCode.Semicolon) ||
-               Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.G) || Input.GetKey(KeyCode.H) ||
-               Input.GetKey(KeyCode.K) || Input.GetKey(KeyCode.L) || Input.GetKey(KeyCode.Quote) ||
-               Input.GetKey(KeyCode.Z) || Input.GetKey(KeyCode.X) || Input.GetKey(KeyCode.C) || Input.GetKey(KeyCode.V) ||
-               Input.GetKey(KeyCode.B) || Input.GetKey(KeyCode.N) || Input.GetKey(KeyCode.M) || Input.GetKey(KeyCode.Comma) ||
-               Input.GetKey(KeyCode.Period) || Input.GetKey(KeyCode.Slash);
+        // 根据当前模式检查对应的键位
+        KeyCode[] keysToCheck = isTenHoleMode ? currentTenHoleKeys : currentEightHoleKeys;
+        
+        foreach (KeyCode key in keysToCheck)
+        {
+            if (Input.GetKey(key))
+            {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     // 根据检测到的频率计算音符
@@ -532,75 +580,74 @@ private float GetBaseFrequency()
         {
             if (isTenHoleMode)//十孔模式
             {
-                //Debug.Log(Input.GetKey(KeyCode.Alpha0));
                 // 十孔模式按键检测 - 按优先级从高到低检测
-                // 使用精确按键组合检测，避免按键过多时检测失效
+                // 使用动态键位设置
                 
-                // 低音5 - Q+2+3+R+I+9+0+[+C+M
-                if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
+                // 低音5 - 使用动态键位
+                if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
                     solfegeNote = 5;
-                // 低音5# - 1+2+3+R+I+9+0+[+C+M
-                else if (CheckKeys(KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
+                // 低音5# - 使用动态键位
+                else if (CheckDynamicKeys(true, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9))
                     solfegeNote = 15;
-                // 低音6 - 2+3+R+I+9+0+[+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
+                // 低音6 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 5, 6, 7, 8, 9))
                     solfegeNote = 6;
-                // 低音6# - Q+2+3+R+I+9+[+C+M
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
+                // 低音6# - 使用动态键位
+                else if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 5, 7, 8, 9))
                     solfegeNote = 16;
-                // 低音7 - Q+2+3+R+I+9+0+C+M
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
+                // 低音7 - 使用动态键位
+                else if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 5, 6, 8, 9))
                     solfegeNote = 7;
-                // 中音1 - 2+3+R+I+9+0+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
+                // 中音1 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 5, 6, 8, 9))
                     solfegeNote = 1;
-                // 中音1# - Q+2+3+R+I+9+C+M
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
+                // 中音1# - 使用动态键位
+                else if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 5, 8, 9))
                     solfegeNote = 11;
-                // 中音2 - 2+3+R+I+9+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
+                // 中音2 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 5, 8, 9))
                     solfegeNote = 2;
-                // 中音2# - Q+2+3+R+I+C+M
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.C, KeyCode.M))
+                // 中音2# - 使用动态键位
+                else if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 8, 9))
                     solfegeNote = 12;
-                // 中音3 - 2+3+R+I+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.C, KeyCode.M))
+                // 中音3 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 8, 9))
                     solfegeNote = 3;
-                // 中音4 - 2+3+R+9+0+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
+                // 中音4 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 5, 6, 8, 9))
                     solfegeNote = 4;
-                // 中音4# - 2+3+R+9+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
+                // 中音4# - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 5, 8, 9))
                     solfegeNote = 14;
-                // 中音5 - 2+3+R+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.C, KeyCode.M))
+                // 中音5 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 8, 9))
                     solfegeNote = 25;
-                // 中音5# - 3+R+9+C+M
-                else if (CheckKeys(KeyCode.Alpha3, KeyCode.R, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
+                // 中音5# - 使用动态键位
+                else if (CheckDynamicKeys(true, 2, 3, 5, 8, 9))
                     solfegeNote = 35;
-                // 中音6 - 3+R+C+M
-                else if (CheckKeys(KeyCode.Alpha3, KeyCode.R, KeyCode.C, KeyCode.M))
+                // 中音6 - 使用动态键位
+                else if (CheckDynamicKeys(true, 2, 3, 8, 9))
                     solfegeNote = 26;
-                // 中音6# - R+9+0+C+M
-                else if (CheckKeys(KeyCode.R, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
+                // 中音6# - 使用动态键位
+                else if (CheckDynamicKeys(true, 3, 5, 6, 8, 9))
                     solfegeNote = 36;
-                // 中音7 - R+C+M
-                else if (CheckKeys(KeyCode.R, KeyCode.C, KeyCode.M))
+                // 中音7 - 使用动态键位
+                else if (CheckDynamicKeys(true, 3, 8, 9))
                     solfegeNote = 27;
-                // 高音1 - C+M
-                else if (CheckKeys(KeyCode.C, KeyCode.M))
+                // 高音1 - 使用动态键位
+                else if (CheckDynamicKeys(true, 8, 9))
                     solfegeNote = 31;
-                // 高音1# - 3+M
-                else if (CheckKeys(KeyCode.Alpha3, KeyCode.M))
+                // 高音1# - 使用动态键位
+                else if (CheckDynamicKeys(true, 2, 9))
                     solfegeNote = 41;
-                // 高音2 - M
-                else if (CheckKeys(KeyCode.M))
+                // 高音2 - 使用动态键位
+                else if (CheckDynamicKeys(true, 9))
                     solfegeNote = 32;
-                // 高音2# - 3
-                else if (CheckKeys(KeyCode.Alpha3))
+                // 高音2# - 使用动态键位
+                else if (CheckDynamicKeys(true, 2))
                     solfegeNote = 42;
-                // 高音3 - 空格键
-                else if (CheckKeys(KeyCode.Space))
+                // 高音3 - 使用动态键位
+                else if (CheckDynamicKeys(true, 11))
                     solfegeNote = 33;
                 else
                 {
@@ -610,52 +657,41 @@ private float GetBaseFrequency()
             }
             else
             {
-                // 如果没有手柄输入，使用键盘控制
-                // 根据新的指法表进行按键组合检测
-                if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                        KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
-                    solfegeNote = 5; // 低音5 - AWEFJIO；
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                             KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.P))
-                    solfegeNote = 15; // 低音5# - AWEFJIOP
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                             KeyCode.J, KeyCode.I, KeyCode.O))
-                    solfegeNote = 6; // 低音6 - AWEFJIO
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                             KeyCode.J, KeyCode.O, KeyCode.Semicolon))
-                    solfegeNote = 16; // 低音6# - AWEFJO；
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                             KeyCode.J, KeyCode.I, KeyCode.Semicolon))
-                    solfegeNote = 7; // 低音7 - AWEFJI；
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                             KeyCode.J, KeyCode.I))
-                    solfegeNote = 1; // 中音1 - AWEFJI
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                             KeyCode.J, KeyCode.Semicolon))
-                    solfegeNote = 11; // 中音1# - AWEFJ；
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                             KeyCode.J))
-                    solfegeNote = 2; // 中音2 - AWEFJ
-                else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J,
-                             KeyCode.Semicolon))
-                    solfegeNote = 12; // 中音2# - WEFJ；
-                else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J))
-                    solfegeNote = 3; // 中音3 - WEFJ
-                else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I,
-                             KeyCode.O))
-                    solfegeNote = 4; // 中音4 - EFJIO
-                else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I))
-                    solfegeNote = 14; // 中音4# - EFJI
-                else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J))
-                    solfegeNote = 25; // 中音5 - EFJ
-                else if (CheckKeys(KeyCode.F, KeyCode.J, KeyCode.I))
-                    solfegeNote = 35; // 中音5# - FJI
-                else if (CheckKeys(KeyCode.F, KeyCode.J))
-                    solfegeNote = 26; // 中音6 - FJ
-                else if (CheckKeys(KeyCode.J, KeyCode.I, KeyCode.O))
-                    solfegeNote = 36; // 中音6# - JIO
-                else if (CheckKeys(KeyCode.J))
-                    solfegeNote = 27; // 中音7 - J
+                // 八孔模式使用动态键位设置
+                if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5, 6, 7))
+                    solfegeNote = 5; // 低音5
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5, 6, 8))
+                    solfegeNote = 15; // 低音5#
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5, 6))
+                    solfegeNote = 6; // 低音6
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 6, 7))
+                    solfegeNote = 16; // 低音6#
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5, 7))
+                    solfegeNote = 7; // 低音7
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5))
+                    solfegeNote = 1; // 中音1
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 7))
+                    solfegeNote = 11; // 中音1#
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4))
+                    solfegeNote = 2; // 中音2
+                else if (CheckDynamicKeys(false, 1, 2, 3, 4, 7))
+                    solfegeNote = 12; // 中音2#
+                else if (CheckDynamicKeys(false, 1, 2, 3, 4))
+                    solfegeNote = 3; // 中音3
+                else if (CheckDynamicKeys(false, 2, 3, 4, 5, 6))
+                    solfegeNote = 4; // 中音4
+                else if (CheckDynamicKeys(false, 2, 3, 4, 5))
+                    solfegeNote = 14; // 中音4#
+                else if (CheckDynamicKeys(false, 2, 3, 4))
+                    solfegeNote = 25; // 中音5
+                else if (CheckDynamicKeys(false, 3, 4, 5))
+                    solfegeNote = 35; // 中音5#
+                else if (CheckDynamicKeys(false, 3, 4))
+                    solfegeNote = 26; // 中音6
+                else if (CheckDynamicKeys(false, 4, 5, 6))
+                    solfegeNote = 36; // 中音6#
+                else if (CheckDynamicKeys(false, 4))
+                    solfegeNote = 27; // 中音7
                 // 如果上述按键都不按，则为高音1
                 else
                     solfegeNote = 31; // 高音1 - 上述按键都不按
@@ -792,73 +828,72 @@ public float GetFrequency()
         }
         if (isTenHoleMode)//十孔模式
             {
-                Debug.Log(CheckKeys(KeyCode.Alpha0));
-                // 使用精确按键组合检测，按优先级从高到低检测
-                // 低音5 - Q+2+3+R+I+9+0+[+C+M
-                if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
+                // 使用动态键位设置，按优先级从高到低检测
+                // 低音5 - 使用动态键位
+                if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
                     return GetFrequencyFromSolfege(5);
-                // 低音5# - 1+2+3+R+I+9+0+[+C+M
-                else if (CheckKeys(KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
+                // 低音5# - 使用动态键位
+                else if (CheckDynamicKeys(true, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9))
                     return GetFrequencyFromSolfege(15);
-                // 低音6 - 2+3+R+I+9+0+[+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
+                // 低音6 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 5, 6, 7, 8, 9))
                     return GetFrequencyFromSolfege(6);
-                // 低音6# - Q+2+3+R+I+9+[+C+M
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
+                // 低音6# - 使用动态键位
+                else if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 5, 7, 8, 9))
                     return GetFrequencyFromSolfege(16);
-                // 低音7 - Q+2+3+R+I+9+0+C+M
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
+                // 低音7 - 使用动态键位
+                else if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 5, 6, 8, 9))
                     return GetFrequencyFromSolfege(7);
-                // 中音1 - 2+3+R+I+9+0+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
+                // 中音1 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 5, 6, 8, 9))
                     return GetFrequencyFromSolfege(1);
-                // 中音1# - Q+2+3+R+I+9+C+M
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
+                // 中音1# - 使用动态键位
+                else if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 5, 8, 9))
                     return GetFrequencyFromSolfege(11);
-                // 中音2 - 2+3+R+I+9+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
+                // 中音2 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 5, 8, 9))
                     return GetFrequencyFromSolfege(2);
-                // 中音2# - Q+2+3+R+I+C+M
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.C, KeyCode.M))
+                // 中音2# - 使用动态键位
+                else if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 8, 9))
                     return GetFrequencyFromSolfege(12);
-                // 中音3 - 2+3+R+I+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.C, KeyCode.M))
+                // 中音3 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 8, 9))
                     return GetFrequencyFromSolfege(3);
-                // 中音4 - 2+3+R+9+0+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
+                // 中音4 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 5, 6, 8, 9))
                     return GetFrequencyFromSolfege(4);
-                // 中音4# - 2+3+R+9+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
+                // 中音4# - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 5, 8, 9))
                     return GetFrequencyFromSolfege(14);
-                // 中音5 - 2+3+R+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.C, KeyCode.M))
+                // 中音5 - 使用动态键位
+                else if (CheckDynamicKeys(true, 1, 2, 3, 8, 9))
                     return GetFrequencyFromSolfege(25);
-                // 中音5# - 3+R+9+C+M
-                else if (CheckKeys(KeyCode.Alpha3, KeyCode.R, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
+                // 中音5# - 使用动态键位
+                else if (CheckDynamicKeys(true, 2, 3, 5, 8, 9))
                     return GetFrequencyFromSolfege(35);
-                // 中音6 - 3+R+C+M
-                else if (CheckKeys(KeyCode.Alpha3, KeyCode.R, KeyCode.C, KeyCode.M))
+                // 中音6 - 使用动态键位
+                else if (CheckDynamicKeys(true, 2, 3, 8, 9))
                     return GetFrequencyFromSolfege(26);
-                // 中音6# - R+9+0+C+M
-                else if (CheckKeys(KeyCode.R, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
+                // 中音6# - 使用动态键位
+                else if (CheckDynamicKeys(true, 3, 5, 6, 8, 9))
                     return GetFrequencyFromSolfege(36);
-                // 中音7 - R+C+M
-                else if (CheckKeys(KeyCode.R, KeyCode.C, KeyCode.M))
+                // 中音7 - 使用动态键位
+                else if (CheckDynamicKeys(true, 3, 8, 9))
                     return GetFrequencyFromSolfege(27);
-                // 高音1 - C+M
-                else if (CheckKeys(KeyCode.C, KeyCode.M))
+                // 高音1 - 使用动态键位
+                else if (CheckDynamicKeys(true, 8, 9))
                     return GetFrequencyFromSolfege(31);
-                // 高音1# - 3+M
-                else if (CheckKeys(KeyCode.Alpha3, KeyCode.M))
+                // 高音1# - 使用动态键位
+                else if (CheckDynamicKeys(true, 2, 9))
                     return GetFrequencyFromSolfege(41);
-                // 高音2 - M
-                else if (CheckKeys(KeyCode.M))
+                // 高音2 - 使用动态键位
+                else if (CheckDynamicKeys(true, 9))
                     return GetFrequencyFromSolfege(32);
-                // 高音2# - 3
-                else if (CheckKeys(KeyCode.Alpha3))
+                // 高音2# - 使用动态键位
+                else if (CheckDynamicKeys(true, 2))
                     return GetFrequencyFromSolfege(42);
-                // 高音3 - 空格键
-                else if (CheckKeys(KeyCode.Space))
+                // 高音3 - 使用动态键位
+                else if (CheckDynamicKeys(true, 11))
                     return GetFrequencyFromSolfege(33);
                 else
                 {
@@ -867,68 +902,41 @@ public float GetFrequency()
             }
             else
             {
-                // 使用新的指法表进行键盘控制
-                // 低音5 - AWEFJIO；
-                if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                        KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
-                    return GetFrequencyFromSolfege(5);
-                // 低音5# - AWEFJIOP
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                             KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.P))
-                    return GetFrequencyFromSolfege(15);
-                // 低音6 - AWEFJIO
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                             KeyCode.J, KeyCode.I, KeyCode.O))
-                    return GetFrequencyFromSolfege(6);
-                // 低音6# - AWEFJO；
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                             KeyCode.J, KeyCode.O, KeyCode.Semicolon))
-                    return GetFrequencyFromSolfege(16);
-                // 低音7 - AWEFJI；
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                             KeyCode.J, KeyCode.I, KeyCode.Semicolon))
-                    return GetFrequencyFromSolfege(7);
-                // 中音1 - AWEFJI
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                             KeyCode.J, KeyCode.I))
-                    return GetFrequencyFromSolfege(1);
-                // 中音1# - AWEFJ；
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                             KeyCode.J, KeyCode.Semicolon))
-                    return GetFrequencyFromSolfege(11);
-                // 中音2 - AWEFJ
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                             KeyCode.J))
-                    return GetFrequencyFromSolfege(2);
-                // 中音2# - WEFJ；
-                else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J,
-                             KeyCode.Semicolon))
-                    return GetFrequencyFromSolfege(12);
-                // 中音3 - WEFJ
-                else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J))
-                    return GetFrequencyFromSolfege(3);
-                // 中音4 - EFJIO
-                else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I,
-                             KeyCode.O))
-                    return GetFrequencyFromSolfege(4);
-                // 中音4# - EFJI
-                else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I))
-                    return GetFrequencyFromSolfege(14);
-                // 中音5 - EFJ
-                else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J))
-                    return GetFrequencyFromSolfege(25);
-                // 中音5# - FJI
-                else if (CheckKeys(KeyCode.F, KeyCode.J, KeyCode.I))
-                    return GetFrequencyFromSolfege(35);
-                // 中音6 - FJ
-                else if (CheckKeys(KeyCode.F, KeyCode.J))
-                    return GetFrequencyFromSolfege(26);
-                // 中音6# - JIO
-                else if (CheckKeys(KeyCode.J, KeyCode.I, KeyCode.O))
-                    return GetFrequencyFromSolfege(36);
-                // 中音7 - J
-                else if (_keyStates.GetValueOrDefault(KeyCode.J))
-                    return GetFrequencyFromSolfege(27);
+                // 八孔模式使用动态键位设置
+                if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5, 6, 7))
+                    return GetFrequencyFromSolfege(5); // 低音5
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5, 6, 8))
+                    return GetFrequencyFromSolfege(15); // 低音5#
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5, 6))
+                    return GetFrequencyFromSolfege(6); // 低音6
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 6, 7))
+                    return GetFrequencyFromSolfege(16); // 低音6#
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5, 7))
+                    return GetFrequencyFromSolfege(7); // 低音7
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5))
+                    return GetFrequencyFromSolfege(1); // 中音1
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 7))
+                    return GetFrequencyFromSolfege(11); // 中音1#
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4))
+                    return GetFrequencyFromSolfege(2); // 中音2
+                else if (CheckDynamicKeys(false, 1, 2, 3, 4, 7))
+                    return GetFrequencyFromSolfege(12); // 中音2#
+                else if (CheckDynamicKeys(false, 1, 2, 3, 4))
+                    return GetFrequencyFromSolfege(3); // 中音3
+                else if (CheckDynamicKeys(false, 2, 3, 4, 5, 6))
+                    return GetFrequencyFromSolfege(4); // 中音4
+                else if (CheckDynamicKeys(false, 2, 3, 4, 5))
+                    return GetFrequencyFromSolfege(14); // 中音4#
+                else if (CheckDynamicKeys(false, 2, 3, 4))
+                    return GetFrequencyFromSolfege(25); // 中音5
+                else if (CheckDynamicKeys(false, 3, 4, 5))
+                    return GetFrequencyFromSolfege(35); // 中音5#
+                else if (CheckDynamicKeys(false, 3, 4))
+                    return GetFrequencyFromSolfege(26); // 中音6
+                else if (CheckDynamicKeys(false, 4, 5, 6))
+                    return GetFrequencyFromSolfege(36); // 中音6#
+                else if (CheckDynamicKeys(false, 4))
+                    return GetFrequencyFromSolfege(27); // 中音7
                 // 高音1 - 上述按键都不按
                 else
                     return GetFrequencyFromSolfege(31);
@@ -949,90 +957,91 @@ private bool CheckAnyKeys()
     {
         if (isTenHoleMode)
         {
-                            // 使用精确按键组合检测，按优先级从高到低检测
-                // 低音5 - Q+2+3+R+I+9+0+[+C+M
-                if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
-                    return true;
-                // 低音5# - 1+2+3+R+I+9+0+[+C+M
-                else if (CheckKeys(KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
-                    return true;
-                // 低音6 - 2+3+R+I+9+0+[+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
-                    return true;
-                // 低音6# - Q+2+3+R+I+9+[+C+M
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
-                    return true;
-                // 低音7 - Q+2+3+R+I+9+0+C+M
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
-                    return true;
-                // 中音1 - 2+3+R+I+9+0+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
-                    return true;
-                // 中音1# - Q+2+3+R+I+9+C+M
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
-                    return true;
-                // 中音2 - 2+3+R+I+9+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
-                    return true;
-                // 中音2# - Q+2+3+R+I+C+M
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.C, KeyCode.M))
-                    return true;
-                // 中音3 - 2+3+R+I+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.C, KeyCode.M))
-                    return true;
-                // 中音4 - 2+3+R+9+0+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
-                    return true;
-                // 中音4# - 2+3+R+9+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
-                    return true;
-                // 中音5 - 2+3+R+C+M
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.C, KeyCode.M))
-                    return true;
-                // 中音5# - 3+R+9+C+M
-                else if (CheckKeys(KeyCode.Alpha3, KeyCode.R, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
-                    return true;
-                // 中音6 - 3+R+C+M
-                else if (CheckKeys(KeyCode.Alpha3, KeyCode.R, KeyCode.C, KeyCode.M))
-                    return true;
-                // 中音6# - R+9+0+C+M
-                else if (CheckKeys(KeyCode.R, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
-                    return true;
-                // 中音7 - R+C+M
-                else if (CheckKeys(KeyCode.R, KeyCode.C, KeyCode.M))
-                    return true;
-                // 高音1 - C+M
-                else if (CheckKeys(KeyCode.C, KeyCode.M))
-                    return true;
-                // 高音1# - 3+M
-                else if (CheckKeys(KeyCode.Alpha3, KeyCode.M))
-                    return true;
-                // 高音2 - M
-                else if (CheckKeys(KeyCode.M))
-                    return true;
-                // 高音2# - 3
-                else if (CheckKeys(KeyCode.Alpha3))
-                    return true;
-                // 高音3 - 空格键
-                else if (CheckKeys(KeyCode.Space))
-                    return true;
-                else
-                {
-                    return false; // 默认高音1
-                }
+            // 使用精确按键组合检测，按优先级从高到低检测（使用动态键位）
+            // 十孔键位映射：Q=0, 1=1, 2=2, 3=3, R=4, I=5, 9=6, 0=7, [=8, C=9, M=10, Space=11
+            
+            // 低音5 - Q+2+3+R+I+9+0+[+C+M
+            if (CheckDynamicKeys(true, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10))
+                return true;
+            // 低音5# - 1+2+3+R+I+9+0+[+C+M
+            else if (CheckDynamicKeys(true, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10))
+                return true;
+            // 低音6 - 2+3+R+I+9+0+[+C+M
+            else if (CheckDynamicKeys(true, 2, 3, 4, 5, 6, 7, 8, 9, 10))
+                return true;
+            // 低音6# - Q+2+3+R+I+9+[+C+M
+            else if (CheckDynamicKeys(true, 0, 2, 3, 4, 5, 6, 8, 9, 10))
+                return true;
+            // 低音7 - Q+2+3+R+I+9+0+C+M
+            else if (CheckDynamicKeys(true, 0, 2, 3, 4, 5, 6, 7, 9, 10))
+                return true;
+            // 中音1 - 2+3+R+I+9+0+C+M
+            else if (CheckDynamicKeys(true, 2, 3, 4, 5, 6, 7, 9, 10))
+                return true;
+            // 中音1# - Q+2+3+R+I+9+C+M
+            else if (CheckDynamicKeys(true, 0, 2, 3, 4, 5, 6, 9, 10))
+                return true;
+            // 中音2 - 2+3+R+I+9+C+M
+            else if (CheckDynamicKeys(true, 2, 3, 4, 5, 6, 9, 10))
+                return true;
+            // 中音2# - Q+2+3+R+I+C+M
+            else if (CheckDynamicKeys(true, 0, 2, 3, 4, 5, 9, 10))
+                return true;
+            // 中音3 - 2+3+R+I+C+M
+            else if (CheckDynamicKeys(true, 2, 3, 4, 5, 9, 10))
+                return true;
+            // 中音4 - 2+3+R+9+0+C+M
+            else if (CheckDynamicKeys(true, 2, 3, 4, 6, 7, 9, 10))
+                return true;
+            // 中音4# - 2+3+R+9+C+M
+            else if (CheckDynamicKeys(true, 2, 3, 4, 6, 9, 10))
+                return true;
+            // 中音5 - 2+3+R+C+M
+            else if (CheckDynamicKeys(true, 2, 3, 4, 9, 10))
+                return true;
+            // 中音5# - 3+R+9+C+M
+            else if (CheckDynamicKeys(true, 3, 4, 6, 9, 10))
+                return true;
+            // 中音6 - 3+R+C+M
+            else if (CheckDynamicKeys(true, 3, 4, 9, 10))
+                return true;
+            // 中音6# - R+9+0+C+M
+            else if (CheckDynamicKeys(true, 4, 6, 7, 9, 10))
+                return true;
+            // 中音7 - R+C+M
+            else if (CheckDynamicKeys(true, 4, 9, 10))
+                return true;
+            // 高音1 - C+M
+            else if (CheckDynamicKeys(true, 9, 10))
+                return true;
+            // 高音1# - 3+M
+            else if (CheckDynamicKeys(true, 3, 10))
+                return true;
+            // 高音2 - M
+            else if (CheckDynamicKeys(true, 10))
+                return true;
+            // 高音2# - 3
+            else if (CheckDynamicKeys(true, 3))
+                return true;
+            // 高音3 - 空格键
+            else if (CheckDynamicKeys(true, 11))
+                return true;
+            else
+            {
+                return false; // 默认高音1
+            }
         }
         else
         {
-            // 检查是否有任何相关的按键被按下
-            return _keyStates.GetValueOrDefault(KeyCode.A) ||
-                   _keyStates.GetValueOrDefault(KeyCode.W) ||
-                   _keyStates.GetValueOrDefault(KeyCode.E) ||
-                   _keyStates.GetValueOrDefault(KeyCode.F) ||
-                   _keyStates.GetValueOrDefault(KeyCode.J) ||
-                   _keyStates.GetValueOrDefault(KeyCode.I) ||
-                   _keyStates.GetValueOrDefault(KeyCode.O) ||
-                   _keyStates.GetValueOrDefault(KeyCode.P) ||
-                   _keyStates.GetValueOrDefault(KeyCode.Semicolon);
+            // 检查是否有任何八孔相关的按键被按下（使用动态键位）
+            for (int i = 0; i < currentEightHoleKeys.Length; i++)
+            {
+                if (_keyStates.GetValueOrDefault(currentEightHoleKeys[i]))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -1045,67 +1054,59 @@ private bool CheckAnyKeys()
         }
         else
         {
-            // 根据新的指法表返回对应的动画状态
+            // 根据新的指法表返回对应的动画状态（使用动态键位）
+            // 八孔键位映射：A=0, W=1, E=2, F=3, J=4, I=5, O=6, ;=7, P=8, Space=9
+            
             // 低音5 - AWEFJIO；
-            if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                    KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+            if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5, 6, 7))
                 return 0;
             // 低音5# - AWEFJIOP
-            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                         KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.P))
+            else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5, 6, 8))
                 return 1;
             // 低音6 - AWEFJIO
-            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                         KeyCode.J, KeyCode.I, KeyCode.O))
+            else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5, 6))
                 return 2;
             // 低音6# - AWEFJO；
-            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                         KeyCode.J, KeyCode.O, KeyCode.Semicolon))
+            else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 6, 7))
                 return 3;
             // 低音7 - AWEFJI；
-            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                         KeyCode.J, KeyCode.I, KeyCode.Semicolon))
+            else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5, 7))
                 return 4;
             // 中音1 - AWEFJI
-            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                         KeyCode.J, KeyCode.I))
+            else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5))
                 return 5;
             // 中音1# - AWEFJ；
-            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                         KeyCode.J, KeyCode.Semicolon))
+            else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 7))
                 return 6;
             // 中音2 - AWEFJ
-            else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F,
-                         KeyCode.J))
+            else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4))
                 return 7;
             // 中音2# - WEFJ；
-            else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J,
-                         KeyCode.Semicolon))
+            else if (CheckDynamicKeys(false, 1, 2, 3, 4, 7))
                 return 8;
             // 中音3 - WEFJ
-            else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J))
+            else if (CheckDynamicKeys(false, 1, 2, 3, 4))
                 return 9;
             // 中音4 - EFJIO
-            else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I,
-                         KeyCode.O))
+            else if (CheckDynamicKeys(false, 2, 3, 4, 5, 6))
                 return 10;
             // 中音4# - EFJI
-            else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I))
+            else if (CheckDynamicKeys(false, 2, 3, 4, 5))
                 return 11;
             // 中音5 - EFJ
-            else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J))
+            else if (CheckDynamicKeys(false, 2, 3, 4))
                 return 12;
             // 中音5# - FJI
-            else if (CheckKeys(KeyCode.F, KeyCode.J, KeyCode.I))
+            else if (CheckDynamicKeys(false, 3, 4, 5))
                 return 13;
             // 中音6 - FJ
-            else if (CheckKeys(KeyCode.F, KeyCode.J))
+            else if (CheckDynamicKeys(false, 3, 4))
                 return 14;
             // 中音6# - JIO
-            else if (CheckKeys(KeyCode.J, KeyCode.I, KeyCode.O))
+            else if (CheckDynamicKeys(false, 4, 5, 6))
                 return 15;
             // 中音7 - J
-            else if (_keyStates.GetValueOrDefault(KeyCode.J))
+            else if (_keyStates.GetValueOrDefault(GetDynamicKey(4, false)))
                 return 16;
             // 高音1 - 上述按键都不按
             else
@@ -1301,97 +1302,87 @@ private string GetNoteName(float frequency)
             if (isTenHoleMode)
             {
                 // 十孔模式按键组合对应的固定音名（以C调为基准）
-                if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
+                if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
                     return "低音5";
-                else if (CheckKeys(KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 5, 6, 7, 8, 9))
                     return "低音5♯";
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 5, 6, 7, 8, 9))
                     return "低音6";
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.LeftBracket, KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 5, 7, 8, 9))
                     return "低音6♯";
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 5, 6, 8, 9))
                     return "低音7";
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 5, 6, 8, 9))
                     return "中音1";
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 5, 8, 9))
                     return "中音1♯";
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 5, 8, 9))
                     return "中音2";
-                else if (CheckKeys(KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 0, 1, 2, 3, 4, 8, 9))
                     return "中音2♯";
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.I, KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 1, 2, 3, 4, 8, 9))
                     return "中音3";
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 1, 2, 3, 5, 6, 8, 9))
                     return "中音4";
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 1, 2, 3, 5, 8, 9))
                     return "中音4♯";
-                else if (CheckKeys(KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 1, 2, 3, 8, 9))
                     return "中音5";
-                else if (CheckKeys(KeyCode.Alpha3, KeyCode.R, KeyCode.Alpha9, KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 2, 3, 5, 8, 9))
                     return "中音5♯";
-                else if (CheckKeys(KeyCode.Alpha3, KeyCode.R, KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 2, 3, 8, 9))
                     return "中音6";
-                else if (CheckKeys(KeyCode.R, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 3, 5, 6, 8, 9))
                     return "中音6♯";
-                else if (CheckKeys(KeyCode.R, KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 3, 8, 9))
                     return "中音7";
-                else if (CheckKeys(KeyCode.C, KeyCode.M))
+                else if (CheckDynamicKeys(true, 8, 9))
                     return "高音1";
-                else if (CheckKeys(KeyCode.Alpha3, KeyCode.M))
+                else if (CheckDynamicKeys(true, 2, 9))
                     return "高音1♯";
-                else if (CheckKeys(KeyCode.M))
+                else if (CheckDynamicKeys(true, 9))
                     return "高音2";
-                else if (CheckKeys(KeyCode.Alpha3))
+                else if (CheckDynamicKeys(true, 2))
                     return "高音2♯";
-                else if (CheckKeys(KeyCode.Space))
+                else if (CheckDynamicKeys(true, -1)) // 空格键，使用特殊索引
                     return "高音3";
             }
             else
             {
                 // 八孔模式按键组合对应的固定音名（以C调为基准）
-                if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-                    KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.Semicolon))
+                if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5, 6, 7))
                     return "低音5"; // AWEFJIO；
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-                    KeyCode.J, KeyCode.I, KeyCode.O, KeyCode.P))
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5, 6, 8))
                     return "低音5♯"; // AWEFJIOP
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-                    KeyCode.J, KeyCode.I, KeyCode.O))
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5, 6))
                     return "低音6"; // AWEFJIO
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-                    KeyCode.J, KeyCode.O, KeyCode.Semicolon))
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 6, 7))
                     return "低音6♯"; // AWEFJO；
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-                    KeyCode.J, KeyCode.I, KeyCode.Semicolon))
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5, 7))
                     return "低音7"; // AWEFJI；
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-                    KeyCode.J, KeyCode.I))
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 5))
                     return "中音1"; // AWEFJI
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-                    KeyCode.J, KeyCode.Semicolon))
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4, 7))
                     return "中音1♯"; // AWEFJ；
-                else if (CheckKeys(KeyCode.A, KeyCode.W, KeyCode.E, KeyCode.F, 
-                    KeyCode.J))
+                else if (CheckDynamicKeys(false, 0, 1, 2, 3, 4))
                     return "中音2"; // AWEFJ
-                else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J, 
-                    KeyCode.Semicolon))
+                else if (CheckDynamicKeys(false, 1, 2, 3, 4, 7))
                     return "中音2♯"; // WEFJ；
-                else if (CheckKeys(KeyCode.W, KeyCode.E, KeyCode.F, KeyCode.J))
+                else if (CheckDynamicKeys(false, 1, 2, 3, 4))
                     return "中音3"; // WEFJ
-                else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I, 
-                    KeyCode.O))
+                else if (CheckDynamicKeys(false, 2, 3, 4, 5, 6))
                     return "中音4"; // EFJIO
-                else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J, KeyCode.I))
+                else if (CheckDynamicKeys(false, 2, 3, 4, 5))
                     return "中音4♯"; // EFJI
-                else if (CheckKeys(KeyCode.E, KeyCode.F, KeyCode.J))
+                else if (CheckDynamicKeys(false, 2, 3, 4))
                     return "中音5"; // EFJ
-                else if (CheckKeys(KeyCode.F, KeyCode.J, KeyCode.I))
+                else if (CheckDynamicKeys(false, 3, 4, 5))
                     return "中音5♯"; // FJI
-                else if (CheckKeys(KeyCode.F, KeyCode.J))
+                else if (CheckDynamicKeys(false, 3, 4))
                     return "中音6"; // FJ
-                else if (CheckKeys(KeyCode.J, KeyCode.I, KeyCode.O))
+                else if (CheckDynamicKeys(false, 4, 5, 6))
                     return "中音6♯"; // JIO
-                else if (CheckKeys(KeyCode.J))
+                else if (CheckDynamicKeys(false, 4))
                     return "中音7"; // J
                 else
                     return "高音1"; // 上述按键都不按

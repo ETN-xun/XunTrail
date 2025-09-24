@@ -8,18 +8,40 @@ using UnityEngine.SceneManagement;
 
 public class KeyChangeManagerTen : MonoBehaviour
 {
-    public KeyCode[] tenHole=new KeyCode[]{KeyCode.Q, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.R, 
-        KeyCode.I, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.LeftBracket, KeyCode.C, KeyCode.M,KeyCode.Alpha1,KeyCode.Space};
+    private KeyCode[] tenHole;
     public List<Button> tenHoleButtons=new List<Button>();
     public Button nowButton=null;
+    
+    [Header("UI元素")]
+    public Button saveButton;
+    public Button resetButton;
+    public Text statusText;
+    
     // Start is called before the first frame update
     void Start()
     {
+        // 从KeySettingsManager加载当前键位设置
+        LoadCurrentKeySettings();
+        
         for(int i=0;i<tenHoleButtons.Count;i++)
         {
             int index = i; // 创建局部变量避免闭包问题
             tenHoleButtons[i].onClick.AddListener(() => OnTargetButtonClicked(index));
         }
+        
+        // 设置保存和重置按钮的事件
+        if (saveButton != null)
+            saveButton.onClick.AddListener(SaveKeySettings);
+        if (resetButton != null)
+            resetButton.onClick.AddListener(ResetToDefault);
+            
+        UpdateStatusText("十孔键位设置已加载");
+    }
+    
+    private void LoadCurrentKeySettings()
+    {
+        tenHole = KeySettingsManager.Instance.GetTenHoleKeys();
+        Debug.Log("十孔键位设置已从KeySettingsManager加载");
     }
 
     // Update is called once per frame
@@ -52,9 +74,61 @@ public class KeyChangeManagerTen : MonoBehaviour
                     }
                     tenHole[t]=keyCode;
                     nowButton=null;
+                    
+                    // 检查是否有键位冲突
+                    CheckForConflicts();
                 }
             }
         }
+    }
+    
+    private void CheckForConflicts()
+    {
+        if (KeySettingsManager.Instance.HasKeyConflict(tenHole))
+        {
+            var conflicts = KeySettingsManager.Instance.GetConflictingKeys(tenHole);
+            UpdateStatusText($"警告：检测到键位冲突 - {string.Join(", ", conflicts)}");
+        }
+        else
+        {
+            UpdateStatusText("键位设置正常，无冲突");
+        }
+    }
+    
+    private void SaveKeySettings()
+    {
+        if (KeySettingsManager.Instance.HasKeyConflict(tenHole))
+        {
+            UpdateStatusText("无法保存：存在键位冲突，请先解决冲突");
+            return;
+        }
+        
+        KeySettingsManager.Instance.SetTenHoleKeys(tenHole);
+        
+        // 通知ToneGenerator重新加载键位设置
+        ToneGenerator toneGenerator = FindObjectOfType<ToneGenerator>();
+        if (toneGenerator != null)
+        {
+            toneGenerator.LoadDynamicKeySettings();
+        }
+        
+        UpdateStatusText("十孔键位设置已保存！");
+    }
+    
+    private void ResetToDefault()
+    {
+        KeySettingsManager.Instance.ResetToDefault();
+        LoadCurrentKeySettings();
+        UpdateStatusText("十孔键位已重置为默认设置");
+    }
+    
+    private void UpdateStatusText(string message)
+    {
+        if (statusText != null)
+        {
+            statusText.text = message;
+        }
+        Debug.Log($"[十孔键位管理器] {message}");
     }
 
     public void OnTargetButtonClicked(int n)
