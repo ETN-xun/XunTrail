@@ -15,6 +15,7 @@ void Start()
         GameObject freeModeButtonObj = GameObject.Find("FreeModeButton");
         GameObject challengeButtonObj = GameObject.Find("ChallengeButton");
         GameObject quitButtonObj = GameObject.Find("QuitButton");
+        GameObject keyChangeButtonObj = GameObject.Find("KeyChangeButton");
         
         if (freeModeButtonObj != null)
         {
@@ -36,6 +37,13 @@ void Start()
             if (quitButton != null)
                 quitButton.onClick.AddListener(OnQuitClicked);
         }
+        
+        if (keyChangeButtonObj != null)
+        {
+            Button keyChangeButton = keyChangeButtonObj.GetComponent<Button>();
+            if (keyChangeButton != null)
+                keyChangeButton.onClick.AddListener(OnKeyChangeClicked);
+        }
     }
     
     void Update()
@@ -52,6 +60,13 @@ public void OnFreeModeClicked()
         Debug.Log("点击了自由模式按钮");
         // 加载自由模式场景（SampleScene）
         SceneManager.LoadScene("SampleScene");
+    }
+
+    public void OnKeyChangeClicked()
+    {
+        Debug.Log("点击了键位切换按钮");
+        // 加载自由模式场景（SampleScene）
+        SceneManager.LoadScene("KeyChangeEight");
     }
 
     
