@@ -947,19 +947,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52b89b84eb4f234419df383b471848f3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  eightHole: 610000007700000065000000660000006a000000690000006f0000003b0000007000000020000000
   eightHoleButtons:
   - {fileID: 2132290636}
   - {fileID: 2142098875}
   - {fileID: 1593249434}
   - {fileID: 1068392870}
-  - {fileID: 879046136}
-  - {fileID: 612549701}
-  - {fileID: 253931762}
   - {fileID: 105809021}
+  - {fileID: 253931762}
+  - {fileID: 612549701}
+  - {fileID: 879046136}
   - {fileID: 851199129}
   - {fileID: 1304356324}
   nowButton: {fileID: 0}
+  saveButton: {fileID: 0}
+  resetButton: {fileID: 0}
+  statusText: {fileID: 0}
 --- !u!4 &793695843
 Transform:
   m_ObjectHideFlags: 0

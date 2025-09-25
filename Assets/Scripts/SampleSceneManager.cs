@@ -234,7 +234,7 @@ public class SampleSceneManager : MonoBehaviour
         Debug.Log("SampleSceneManager: 自由模式设置完成");
     }
     
-    private void SetupTutorialMode()
+private void SetupTutorialMode()
     {
         Debug.Log("SampleSceneManager: 设置教程模式");
         
@@ -277,7 +277,17 @@ public class SampleSceneManager : MonoBehaviour
             progressSlider.value = 0;
         }
         
-        Debug.Log("SampleSceneManager: 教程模式设置完成");
+        // 启动教程管理器
+        TutorialManager tutorialManager = FindObjectOfType<TutorialManager>();
+        if (tutorialManager != null)
+        {
+            tutorialManager.StartTutorial();
+            Debug.Log("SampleSceneManager: 已启动教程管理器");
+        }
+        else
+        {
+            Debug.LogError("SampleSceneManager: 未找到TutorialManager组件");
+        }
     }
     
     private void StartChallengeMode(MusicSheet musicSheet)
