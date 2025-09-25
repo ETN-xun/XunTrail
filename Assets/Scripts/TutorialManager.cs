@@ -275,6 +275,13 @@ public void OnNextButtonClicked()
             return;
         }
         
+        // 如果文字还在显示中，立即显示完整文字，不跳转到下一步
+        if (isDisplayingText)
+        {
+            SkipTextAnimation();
+            return;
+        }
+        
         // 检查是否是最后一步
         bool isLastStep = currentStepIndex == tutorialSteps.Count - 1;
         
