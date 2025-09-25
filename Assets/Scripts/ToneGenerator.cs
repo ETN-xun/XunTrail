@@ -345,7 +345,7 @@ void Update()
         // 检测是否应该播放声音（必须按下空格键或手柄按键）
         bool anyNoteKeyPressed = CheckAnyNoteKey();
         bool shouldPlaySound = _isSpacePressed || _isGamepadButtonPressed||(isTenHoleMode&&CheckAnyKeys());
-        Debug.Log(CheckAnyKeys());
+        //Debug.Log(CheckAnyKeys());
         
         if (shouldPlaySound)
         {

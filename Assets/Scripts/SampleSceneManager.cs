@@ -23,24 +23,37 @@ public class SampleSceneManager : MonoBehaviour
         // 查找并设置UI引用
         FindUIElements();
         
-        // 检查是否有来自ChallengeDataManager的选中乐谱
-        if (ChallengeDataManager.Instance != null)
+        // 检查游戏模式
+        if (GameModeManager.Instance != null)
         {
-            MusicSheet selectedSheet = ChallengeDataManager.Instance.GetSelectedMusicSheet();
-            if (selectedSheet != null)
+            if (GameModeManager.Instance.IsTutorialMode())
             {
-                Debug.Log($"SampleSceneManager: 检测到选中的乐谱 - {selectedSheet.name}，启动挑战模式");
-                StartChallengeMode(selectedSheet);
+                Debug.Log("SampleSceneManager: 检测到教程模式");
+                SetupTutorialMode();
+            }
+            else if (ChallengeDataManager.Instance != null)
+            {
+                MusicSheet selectedSheet = ChallengeDataManager.Instance.GetSelectedMusicSheet();
+                if (selectedSheet != null)
+                {
+                    Debug.Log($"SampleSceneManager: 检测到选中的乐谱 - {selectedSheet.name}，启动挑战模式");
+                    StartChallengeMode(selectedSheet);
+                }
+                else
+                {
+                    Debug.Log("SampleSceneManager: 没有选中的乐谱，进入自由模式");
+                    SetupFreeMode();
+                }
             }
             else
             {
-                Debug.Log("SampleSceneManager: 没有选中的乐谱，进入自由模式");
+                Debug.Log("SampleSceneManager: ChallengeDataManager不存在，进入自由模式");
                 SetupFreeMode();
             }
         }
         else
         {
-            Debug.Log("SampleSceneManager: ChallengeDataManager不存在，进入自由模式");
+            Debug.Log("SampleSceneManager: GameModeManager不存在，进入自由模式");
             SetupFreeMode();
         }
     }
@@ -219,6 +232,52 @@ public class SampleSceneManager : MonoBehaviour
         }
         
         Debug.Log("SampleSceneManager: 自由模式设置完成");
+    }
+    
+    private void SetupTutorialMode()
+    {
+        Debug.Log("SampleSceneManager: 设置教程模式");
+        
+        // 停止任何正在进行的挑战
+        if (ChallengeManager.Instance != null)
+        {
+            ChallengeManager.Instance.ForceStopChallenge();
+            Debug.Log("SampleSceneManager: 已强制停止挑战模式");
+        }
+        
+        // 确保游戏模式设置为教程模式
+        if (GameModeManager.Instance != null)
+        {
+            GameModeManager.Instance.SetTutorialMode();
+        }
+        
+        // 在教程模式下显示基本UI
+        if (challengeUI != null)
+        {
+            challengeUI.SetActive(true);
+        }
+        
+        if (progressText != null)
+        {
+            progressText.text = "新手教程模式";
+        }
+        
+        if (upcomingNotesText != null)
+        {
+            upcomingNotesText.text = "欢迎来到新手教程！";
+        }
+        
+        if (scoreText != null)
+        {
+            scoreText.text = "教程进度: 0%";
+        }
+        
+        if (progressSlider != null)
+        {
+            progressSlider.value = 0;
+        }
+        
+        Debug.Log("SampleSceneManager: 教程模式设置完成");
     }
     
     private void StartChallengeMode(MusicSheet musicSheet)

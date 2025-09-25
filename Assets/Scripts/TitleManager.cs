@@ -16,6 +16,7 @@ void Start()
         GameObject challengeButtonObj = GameObject.Find("ChallengeButton");
         GameObject quitButtonObj = GameObject.Find("QuitButton");
         GameObject keyChangeButtonObj = GameObject.Find("KeyChangeButton");
+        GameObject guideButtonObj = GameObject.Find("GuideButton");
         
         if (freeModeButtonObj != null)
         {
@@ -43,6 +44,13 @@ void Start()
             Button keyChangeButton = keyChangeButtonObj.GetComponent<Button>();
             if (keyChangeButton != null)
                 keyChangeButton.onClick.AddListener(OnKeyChangeClicked);
+        }
+        
+        if (guideButtonObj != null)
+        {
+            Button guideButton = guideButtonObj.GetComponent<Button>();
+            if (guideButton != null)
+                guideButton.onClick.AddListener(OnGuideButtonClicked);
         }
     }
     
@@ -82,6 +90,28 @@ public void OnFreeModeClicked()
         Debug.Log("点击了键位切换按钮");
         // 加载自由模式场景（SampleScene）
         SceneManager.LoadScene("KeyChangeEight");
+    }
+
+    public void OnGuideButtonClicked()
+    {
+        Debug.Log("点击了新手教程按钮");
+        
+        // 清除挑战模式状态
+        if (ChallengeDataManager.Instance != null)
+        {
+            ChallengeDataManager.Instance.SetSelectedMusicSheet(null);
+            Debug.Log("TitleManager: 已清除挑战模式的选中乐谱");
+        }
+        
+        // 设置游戏模式为教程模式
+        if (GameModeManager.Instance != null)
+        {
+            GameModeManager.Instance.SetTutorialMode();
+            Debug.Log("TitleManager: 已设置为教程模式");
+        }
+        
+        // 加载SampleScene进入教程模式
+        SceneManager.LoadScene("SampleScene");
     }
 
     

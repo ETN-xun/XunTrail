@@ -7,7 +7,8 @@ public class GameModeManager : MonoBehaviour
     public enum GameMode
     {
         Free,
-        Challenge
+        Challenge,
+        Tutorial
     }
     
     [Header("游戏模式设置")]
@@ -43,6 +44,13 @@ public class GameModeManager : MonoBehaviour
         Debug.Log("设置为自由模式");
     }
     
+    public void SetTutorialMode()
+    {
+        currentMode = GameMode.Tutorial;
+        selectedMusicSheet = null;
+        Debug.Log("设置为教程模式");
+    }
+    
     public bool IsChallengeMode()
     {
         return currentMode == GameMode.Challenge;
@@ -51,5 +59,10 @@ public class GameModeManager : MonoBehaviour
     public bool IsFreeMode()
     {
         return currentMode == GameMode.Free;
+    }
+    
+    public bool IsTutorialMode()
+    {
+        return currentMode == GameMode.Tutorial;
     }
 }
