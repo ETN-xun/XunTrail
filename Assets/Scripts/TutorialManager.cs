@@ -57,9 +57,11 @@ private void InitializeTutorialSteps()
         
         tutorialSteps.Add(new TutorialStep("接下来教给你如何按孔，按下【八孔按键4】键试试吧", true));
         
-        tutorialSteps.Add(new TutorialStep("好的，保持按住这个键，同时按下【八孔按键9】吹气试试", true));
+        tutorialSteps.Add(new TutorialStep("好的，保持按住【八孔按键4】键，同时按下【八孔按键9】吹气试试", true));
         
         tutorialSteps.Add(new TutorialStep("发现了吗？吹出来的音与刚才不一样了！按孔可以改变吹出声音的频率，不同的按键组合对应不同的频率。刚才已经为你演示高音1和中音7了，接下来学习其他频率的演奏方式吧", true));
+        
+        tutorialSteps.Add(new TutorialStep("温馨提示：某些按键组合可能按不出来，这并不是游戏产生的bug，而是因为你的键盘产生了按键冲突。请买一个全键无冲的键盘，或者调整为不冲突的键位", true));
         
         tutorialSteps.Add(new TutorialStep("按住【八孔按键3】和【八孔按键4】，再按下【八孔按键9】，吹出中音6", true));
         
@@ -85,7 +87,58 @@ private void InitializeTutorialSteps()
         
         tutorialSteps.Add(new TutorialStep("按下←、→键可以降半调、升半调", true));
         
-        tutorialSteps.Add(new TutorialStep("好了，你已经学会最基本的操作了。至于半音指法、十孔指法、手柄操作等进阶操作，可以看操作文档来学习", true));
+        tutorialSteps.Add(new TutorialStep("好了，你已经学会最基本的操作了。可以直接退出教程，或者点“下一步”继续学习半音指法、十孔指法、手柄操作等进阶操作", true));
+        
+        tutorialSteps.Add(new TutorialStep("还想学些进阶操作？好，首先我们来学习八孔埙的所有半音指法", true));
+        
+        tutorialSteps.Add(new TutorialStep("按住【八孔按键4】、【八孔按键5】和【八孔按键6】，再按下【八孔按键9】，吹出中音6#", true));
+        
+        tutorialSteps.Add(new TutorialStep("按住【八孔按键3】、【八孔按键4】和【八孔按键5】，再按下【八孔按键9】，吹出中音5#", true));
+        
+        tutorialSteps.Add(new TutorialStep("按住【八孔按键2】、【八孔按键3】、【八孔按键4】和【八孔按键5】，再按下【八孔按键9】，吹出中音4#", true));
+        tutorialSteps.Add(new TutorialStep("按住【八孔按键1】、【八孔按键2】、【八孔按键3】、【八孔按键4】和【八孔按键7】，再按下【八孔按键9】，吹出中音2#", true));
+        tutorialSteps.Add(new TutorialStep("按住【八孔按键0】、【八孔按键1】、【八孔按键2】、【八孔按键3】、【八孔按键4】和【八孔按键7】，再按下【八孔按键9】，吹出中音1#", true));
+        tutorialSteps.Add(new TutorialStep("按住【八孔按键0】、【八孔按键1】、【八孔按键2】、【八孔按键3】、【八孔按键4】、【八孔按键6】和【八孔按键7】，再按下【八孔按键9】，吹出低音6#", true));
+        tutorialSteps.Add(new TutorialStep("按住【八孔按键0】、【八孔按键1】、【八孔按键2】、【八孔按键3】、【八孔按键4】、【八孔按键5】、【八孔按键6】和【八孔按键8】，再按下【八孔按键9】，吹出低音5#", true));
+        tutorialSteps.Add(new TutorialStep("接下来让我们学习十孔模式的指法，按下【Shift】切换为十孔模式", true));
+        tutorialSteps.Add(new TutorialStep("与八孔模式不同的是，十孔模式没有“吹气”键，只要按下键就出声。不按键或按键不符合任何一种按键组合则不发声", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键11】，吹出高音3", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键2】，吹出高音2#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键5】，吹出高音2", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键2】、【十孔按键5】，吹出高音1#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键4】、【十孔按键5】，吹出高音1", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键3】、【十孔按键4】、【十孔按键5】，吹出中音7", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键7】、【十孔按键8】，吹出中音6#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】，吹出中音6", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键7】，吹出中音5#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】，吹出中音5", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键7】，吹出中音4#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键7】、【十孔按键8】，吹出中音4", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】，吹出中音3", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】，吹出中音2#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】，吹出中音2", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】，吹出中音1#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键8】，吹出中音1", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键8】，吹出低音7", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键9】，吹出低音6#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键8】、【十孔按键9】、【十孔按键10】，吹出低音5#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键8】、【十孔按键9】，吹出低音5", true));
+        tutorialSteps.Add(new TutorialStep("好了，十孔埙的全半音指法你也都学会了！", true));
+        tutorialSteps.Add(new TutorialStep("接下来就是手柄操作了，以下内容以Xbox手柄为准", true));
+        tutorialSteps.Add(new TutorialStep("按下【A】键，吹出低音6", true));
+        tutorialSteps.Add(new TutorialStep("按下【B】键，吹出中音2", true));
+        tutorialSteps.Add(new TutorialStep("按下【X】键，吹出中音5", true));
+        tutorialSteps.Add(new TutorialStep("按下【Y】键，吹出高音1", true));
+        tutorialSteps.Add(new TutorialStep("好的。这四个音是基准音。实际演奏时要使用左边的摇杆进行调整", true));
+        tutorialSteps.Add(new TutorialStep("摇杆向上，升一个音；摇杆向下，降一个音", true));
+        tutorialSteps.Add(new TutorialStep("摇杆向右，升半个音；摇杆向左，降半个音", true));
+        tutorialSteps.Add(new TutorialStep("举个例子吧，按下【A】键，本来是低音6", true));
+        tutorialSteps.Add(new TutorialStep("按住【A】键，然后将摇杆向上推，就变成了低音7", true));
+        tutorialSteps.Add(new TutorialStep("按住【A】键，然后将摇杆向下推，就变成了低音5", true));
+        tutorialSteps.Add(new TutorialStep("按住【A】键，然后将摇杆向右推，就变成了低音6#", true));
+        tutorialSteps.Add(new TutorialStep("按住【A】键，然后将摇杆向左推，就变成了低音5#", true));
+        tutorialSteps.Add(new TutorialStep("另外三个键同理。以基准音+调音的方式，能够演奏低音5到高音2的所有全半音", true));
+        tutorialSteps.Add(new TutorialStep("好了，你已经学完《埙途》的全部内容了，现在可以去自由模式随意练习，或者在挑战模式挑战乐谱了！", true));
     }
     
     void Start()
@@ -270,7 +323,7 @@ private void ShowCurrentStep()
     
 public void OnNextButtonClicked()
     {
-        if (!isActive || currentStepIndex >= tutorialSteps.Count||Input.GetKeyDown(KeyCode.Space))
+        if (!isActive || currentStepIndex >= tutorialSteps.Count||Input.GetKeyDown(KeyCode.Space)||Input.GetKeyDown(KeyCode.Joystick1Button0))
         {
             return;
         }
