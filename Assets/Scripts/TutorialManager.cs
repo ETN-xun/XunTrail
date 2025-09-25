@@ -157,9 +157,7 @@ private void InitializeTutorialSteps()
         
         InitializeTutorialSteps();
         SetupUI();
-        
-        // 不再自动启动教程，只有在明确调用StartTutorial()时才启动
-        Debug.Log("TutorialManager: 已初始化，等待明确调用StartTutorial()");
+        StartTutorial();
     }
     
 private void SetupUI()

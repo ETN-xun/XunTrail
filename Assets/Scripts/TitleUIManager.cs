@@ -9,11 +9,6 @@ public class TitleUIManager : MonoBehaviour
     
     void Start()
     {
-        // 禁用按钮绑定，避免与TitleManager冲突
-        // TitleManager已经处理了所有按钮的绑定
-        Debug.Log("TitleUIManager: 已禁用按钮绑定，由TitleManager统一处理");
-        
-        /*
         // 配置按钮点击事件
         if (challengeButton != null)
         {
@@ -24,7 +19,6 @@ public class TitleUIManager : MonoBehaviour
         {
             quitButton.onClick.AddListener(OnQuitButtonClicked);
         }
-        */
     }
     
     public void OnChallengeButtonClicked()
