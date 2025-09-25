@@ -121,6 +121,7 @@ private void InitializeTutorialSteps()
         tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键8】，吹出中音1", true));
         tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键8】，吹出低音7", true));
         tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键9】，吹出低音6#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键8】，吹出低音6", true));
         tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键8】、【十孔按键9】、【十孔按键10】，吹出低音5#", true));
         tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键8】、【十孔按键9】，吹出低音5", true));
         tutorialSteps.Add(new TutorialStep("好了，十孔埙的全半音指法你也都学会了！", true));
