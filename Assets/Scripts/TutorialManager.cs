@@ -270,7 +270,7 @@ private void ShowCurrentStep()
     
 public void OnNextButtonClicked()
     {
-        if (!isActive || currentStepIndex >= tutorialSteps.Count)
+        if (!isActive || currentStepIndex >= tutorialSteps.Count||Input.GetKeyDown(KeyCode.Space))
         {
             return;
         }
