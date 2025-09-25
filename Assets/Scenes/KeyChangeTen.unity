@@ -1230,21 +1230,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4b427c5eb79e74419a69e5b95c19c5b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tenHole: 710000003200000033000000720000006900000039000000300000005b000000630000006d0000003100000020000000
   tenHoleButtons:
   - {fileID: 1299300706}
   - {fileID: 2132290636}
   - {fileID: 2142098875}
   - {fileID: 1593249434}
-  - {fileID: 1855702866}
-  - {fileID: 879046136}
-  - {fileID: 612549701}
   - {fileID: 253931762}
+  - {fileID: 612549701}
+  - {fileID: 879046136}
+  - {fileID: 1855702866}
   - {fileID: 1068392870}
   - {fileID: 105809021}
   - {fileID: 851199129}
   - {fileID: 1682705143}
   nowButton: {fileID: 0}
+  saveButton: {fileID: 0}
+  resetButton: {fileID: 0}
+  statusText: {fileID: 0}
 --- !u!1 &812081639
 GameObject:
   m_ObjectHideFlags: 0

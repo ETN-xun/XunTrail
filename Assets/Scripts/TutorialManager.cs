@@ -39,6 +39,7 @@ public class TutorialManager : MonoBehaviour
     private bool typewriterEffect = true;
     private KeySettingsManager keySettingsManager;
     private KeyCode[] currentEightHoleKeys;
+    private KeyCode[] currentTenHoleKeys;
     
     // 教程步骤定义
 private void InitializeTutorialSteps()
@@ -47,6 +48,9 @@ private void InitializeTutorialSteps()
         
         // 获取当前八孔按键设置
         currentEightHoleKeys = keySettingsManager.GetEightHoleKeys();
+        
+        // 获取当前十孔按键设置
+        currentTenHoleKeys = keySettingsManager.GetTenHoleKeys();
         
         // 添加所有教程步骤
         tutorialSteps.Add(new TutorialStep("欢迎来到埙音游《埙途》，在教程中你将学习怎样吹埙", true));
@@ -104,24 +108,24 @@ private void InitializeTutorialSteps()
         tutorialSteps.Add(new TutorialStep("与八孔模式不同的是，十孔模式没有“吹气”键，只要按下键就出声。不按键或按键不符合任何一种按键组合则不发声", true));
         tutorialSteps.Add(new TutorialStep("按下【十孔按键11】，吹出高音3", true));
         tutorialSteps.Add(new TutorialStep("按下【十孔按键2】，吹出高音2#", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键5】，吹出高音2", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键2】、【十孔按键5】，吹出高音1#", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键4】、【十孔按键5】，吹出高音1", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键3】、【十孔按键4】、【十孔按键5】，吹出中音7", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键7】、【十孔按键8】，吹出中音6#", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】，吹出中音6", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键7】，吹出中音5#", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】，吹出中音5", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键7】，吹出中音4#", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键7】、【十孔按键8】，吹出中音4", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】，吹出中音3", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】，吹出中音2#", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】，吹出中音2", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】，吹出中音1#", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键8】，吹出中音1", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键8】，吹出低音7", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键9】，吹出高音2", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键2】、【十孔按键9】，吹出高音1#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键8】、【十孔按键9】，吹出高音1", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键3】、【十孔按键8】、【十孔按键9】，吹出中音7", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键3】、【十孔按键5】、【十孔按键6】、【十孔按键8】、【十孔按键9】，吹出中音6#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键2】、【十孔按键3】、【十孔按键8】、【十孔按键9】，吹出中音6", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键2】、【十孔按键3】、【十孔按键5】、【十孔按键8】、【十孔按键9】，吹出中音5#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键8】、【十孔按键9】，吹出中音5", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键5】、【十孔按键8】、【十孔按键9】，吹出中音4#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键5】、【十孔按键6】、【十孔按键8】、【十孔按键9】，吹出中音4", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键8】、【十孔按键9】，吹出中音3", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键8】、【十孔按键9】，吹出中音2#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键8】、【十孔按键9】，吹出中音2", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键8】、【十孔按键9】，吹出中音1#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键8】、【十孔按键9】，吹出中音1", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键8】、【十孔按键9】，吹出低音7", true));
         tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键9】，吹出低音6#", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键8】，吹出低音6", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键7】、【十孔按键8】、【十孔按键9】，吹出低音6", true));
         tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键8】、【十孔按键9】、【十孔按键10】，吹出低音5#", true));
         tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键8】、【十孔按键9】，吹出低音5", true));
         tutorialSteps.Add(new TutorialStep("好了，十孔埙的全半音指法你也都学会了！", true));
@@ -293,11 +297,25 @@ private void ShowCurrentStep()
     private string ReplaceKeyPlaceholders(string text)
     {
         // 替换八孔按键占位符为实际按键名称
-        for (int i = 0; i < currentEightHoleKeys.Length; i++)
+        if (currentEightHoleKeys != null)
         {
-            string placeholder = $"【八孔按键{i}】";
-            string keyName = currentEightHoleKeys[i].ToString();
-            text = text.Replace(placeholder, $"【{keyName}】");
+            for (int i = 0; i < currentEightHoleKeys.Length; i++)
+            {
+                string placeholder = $"【八孔按键{i}】";
+                string keyName = currentEightHoleKeys[i].ToString();
+                text = text.Replace(placeholder, $"【{keyName}】");
+            }
+        }
+        
+        // 替换十孔按键占位符为实际按键名称
+        if (currentTenHoleKeys != null)
+        {
+            for (int i = 0; i < currentTenHoleKeys.Length; i++)
+            {
+                string placeholder = $"【十孔按键{i}】";
+                string keyName = currentTenHoleKeys[i].ToString();
+                text = text.Replace(placeholder, $"【{keyName}】");
+            }
         }
         
         return text;
