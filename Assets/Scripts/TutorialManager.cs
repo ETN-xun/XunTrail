@@ -34,6 +34,7 @@ public class TutorialManager : MonoBehaviour
     private List<TutorialStep> tutorialSteps;
     private int currentStepIndex = 0;
     private bool isDisplayingText = false;
+    private bool isWaitingForInput = false;
     private bool isActive = false;
     private bool typewriterEffect = true;
     private KeySettingsManager keySettingsManager;
@@ -122,8 +123,11 @@ private void InitializeTutorialSteps()
         tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键8】、【十孔按键9】，吹出中音2", true));
         tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键8】、【十孔按键9】，吹出中音1#", true));
         tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键8】、【十孔按键9】，吹出中音1", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键8】、【十孔按键9】、【十孔按键10】，吹出低音5#", true));
-        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键9】，吹出低音5", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键8】、【十孔按键9】，吹出低音7", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键9】，吹出低音6#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键7】、【十孔按键8】、【十孔按键9】，吹出低音6", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键8】、【十孔按键9】、【十孔按键10】，吹出低音5#", true));
+        tutorialSteps.Add(new TutorialStep("按下【十孔按键0】、【十孔按键1】、【十孔按键2】、【十孔按键3】、【十孔按键4】、【十孔按键5】、【十孔按键6】、【十孔按键7】、【十孔按键8】、【十孔按键9】，吹出低音5", true));
         tutorialSteps.Add(new TutorialStep("好了，十孔埙的全半音指法你也都学会了！", true));
         tutorialSteps.Add(new TutorialStep("接下来就是手柄操作了，以下内容以Xbox手柄为准", true));
         tutorialSteps.Add(new TutorialStep("按下【A】键，吹出低音6", true));
@@ -153,8 +157,7 @@ private void InitializeTutorialSteps()
         
         InitializeTutorialSteps();
         SetupUI();
-        
-        // 不再自动启动教程，而是由SampleSceneManager根据游戏模式来决定是否启动
+        StartTutorial();
     }
     
 private void SetupUI()
