@@ -125,7 +125,7 @@ void OnQuitClicked()
         #endif
     }
     
-public void OnChallengeModeClicked()
+    public void OnChallengeModeClicked()
     {
         try
         {
@@ -138,10 +138,10 @@ public void OnChallengeModeClicked()
                 Debug.Log("TitleManager: 已清除之前的挑战模式状态");
             }
             
-            // 设置游戏模式为挑战模式（暂时设置，具体乐谱在ChallengeScene中选择）
+            // 先设置为自由模式，等待在ChallengeScene中选择乐谱后再设置为挑战模式
             if (GameModeManager.Instance != null)
             {
-                GameModeManager.Instance.SetFreeMode(); // 先设为自由模式，等选择乐谱后再设为挑战模式
+                GameModeManager.Instance.SetFreeMode();
                 Debug.Log("TitleManager: 准备进入挑战模式选择界面");
             }
             
