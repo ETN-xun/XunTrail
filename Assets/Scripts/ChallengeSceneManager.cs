@@ -14,6 +14,8 @@ public class ChallengeSceneManager : MonoBehaviour
     public Button selectFileButton;
     public Button startButton;
     [SerializeField] public Button backButton;
+    public Button prevFileButton;
+    public Button nextFileButton;
     public Text selectFileText;
     public Text progressText;
     public Slider progressSlider;
@@ -22,6 +24,10 @@ public class ChallengeSceneManager : MonoBehaviour
     private string selectedFilePath = "";
     private MusicSheet selectedMusicSheet;
     
+    [Header("File Management")]
+    private string[] availableFiles;
+    private int currentFileIndex = 0;
+    
     void Start()
     {
         // 自动查找UI元素
@@ -29,6 +35,9 @@ public class ChallengeSceneManager : MonoBehaviour
         
         // 强制分配UI引用（解决序列化问题）
         ForceAssignUIReferences();
+        
+        // 初始化文件列表
+        InitializeFileList();
         
         // 绑定按钮事件
         if (selectFileButton != null)
@@ -39,10 +48,22 @@ public class ChallengeSceneManager : MonoBehaviour
             
         if (backButton != null)
             backButton.onClick.AddListener(OnBackToMenuClicked);
+            
+        if (prevFileButton != null)
+            prevFileButton.onClick.AddListener(OnPrevFileClicked);
+            
+        if (nextFileButton != null)
+            nextFileButton.onClick.AddListener(OnNextFileClicked);
         
         // 初始状态：禁用开始按钮
         if (startButton != null)
             startButton.interactable = false;
+            
+        // 自动加载第一个文件
+        if (availableFiles != null && availableFiles.Length > 0)
+        {
+            LoadCurrentFile();
+        }
     }
     
     void Update()
@@ -74,6 +95,18 @@ public class ChallengeSceneManager : MonoBehaviour
         {
             GameObject obj = GameObject.Find("BackButton");
             if (obj != null) backButton = obj.GetComponent<Button>();
+        }
+        
+        if (prevFileButton == null)
+        {
+            GameObject obj = GameObject.Find("PrevFileButton");
+            if (obj != null) prevFileButton = obj.GetComponent<Button>();
+        }
+        
+        if (nextFileButton == null)
+        {
+            GameObject obj = GameObject.Find("NextFileButton");
+            if (obj != null) nextFileButton = obj.GetComponent<Button>();
         }
         
         if (selectFileText == null)
@@ -121,6 +154,20 @@ public class ChallengeSceneManager : MonoBehaviour
                 backButton = backObj.GetComponent<Button>();
         }
         
+        if (prevFileButton == null)
+        {
+            GameObject prevObj = GameObject.Find("PrevFileButton");
+            if (prevObj != null)
+                prevFileButton = prevObj.GetComponent<Button>();
+        }
+        
+        if (nextFileButton == null)
+        {
+            GameObject nextObj = GameObject.Find("NextFileButton");
+            if (nextObj != null)
+                nextFileButton = nextObj.GetComponent<Button>();
+        }
+        
         // 查找文本组件
         if (selectFileText == null)
         {
@@ -151,68 +198,120 @@ public class ChallengeSceneManager : MonoBehaviour
     {
         Debug.Log("ChallengeSceneManager: 选择文件按钮被点击");
         
-        // 尝试打开文件选择对话框
-        string selectedFile = FileSelector.OpenFileDialog("选择乐谱文件", "文本文件\0*.txt\0所有文件\0*.*\0");
-        
-        if (!string.IsNullOrEmpty(selectedFile))
+        // 直接加载当前选中的文件
+        if (availableFiles != null && availableFiles.Length > 0)
         {
-            if (FileSelector.IsValidMusicSheetFile(selectedFile))
-        {
-            // 用户选择了有效的外部文件
-            selectedFilePath = selectedFile;
-            string fileName = Path.GetFileNameWithoutExtension(selectedFile);
-            
-            if (selectFileText != null)
-                selectFileText.text = $"已选择: {fileName}";
-                
-            // 加载并解析选择的乐谱文件
-            LoadMusicSheet(selectedFile);
-                
-            Debug.Log($"ChallengeSceneManager: 选择了外部文件 {fileName}");
-            return;
-            }
-            else
-            {
-                // 选择的文件无效
-                Debug.LogWarning($"ChallengeSceneManager: 选择的文件不是有效的乐谱文件: {selectedFile}");
-                if (selectFileText != null)
-                    selectFileText.text = "选择的文件格式无效";
-                return;
-            }
+            LoadCurrentFile();
         }
         else
         {
-            // 用户取消了文件选择
-            Debug.Log("ChallengeSceneManager: 用户取消了文件选择");
+            Debug.LogWarning("ChallengeSceneManager: 没有可用的乐谱文件");
             if (selectFileText != null)
-                selectFileText.text = "未选择文件";
+                selectFileText.text = "没有可用的乐谱文件";
         }
-        
-        // 如果没有选择外部文件，则从StreamingAssets加载
-        if (ChallengeDataManager.Instance != null)
+    }
+    
+    void InitializeFileList()
+    {
+        try
         {
-            var availableSheets = ChallengeDataManager.Instance.availableMusicSheets;
-            
-            if (availableSheets != null && availableSheets.Count > 0)
+            if (!Directory.Exists(Application.streamingAssetsPath))
             {
-                // 使用第一个可用的乐谱
-                selectedMusicSheet = availableSheets[0];
-                selectedFilePath = Path.Combine(Application.streamingAssetsPath, selectedMusicSheet.fileName + ".txt");
-                
-                if (selectFileText != null)
-                    selectFileText.text = $"已选择: {selectedMusicSheet.fileName}";
-                    
-                // 启用开始按钮
-                if (startButton != null)
-                    startButton.interactable = true;
-                    
-                Debug.Log($"ChallengeSceneManager: 从StreamingAssets选择了文件 {selectedMusicSheet.fileName}");
+                Debug.LogWarning("ChallengeSceneManager: StreamingAssets文件夹不存在");
+                availableFiles = new string[0];
                 return;
             }
+            
+            // 查找所有txt文件
+            availableFiles = Directory.GetFiles(Application.streamingAssetsPath, "*.txt");
+            currentFileIndex = 0;
+            
+            Debug.Log($"ChallengeSceneManager: 找到 {availableFiles.Length} 个txt文件");
+            
+            // 更新按钮状态
+            UpdateNavigationButtons();
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"ChallengeSceneManager: 初始化文件列表时出错 - {e.Message}");
+            availableFiles = new string[0];
+        }
+    }
+    
+    void LoadCurrentFile()
+    {
+        if (availableFiles == null || availableFiles.Length == 0)
+        {
+            Debug.LogWarning("ChallengeSceneManager: 没有可用的文件");
+            return;
         }
         
-        // 如果ChallengeDataManager不可用，直接查找StreamingAssets中的txt文件
-        LoadFromStreamingAssets();
+        if (currentFileIndex < 0 || currentFileIndex >= availableFiles.Length)
+        {
+            currentFileIndex = 0;
+        }
+        
+        selectedFilePath = availableFiles[currentFileIndex];
+        string fileName = Path.GetFileNameWithoutExtension(selectedFilePath);
+        
+        if (selectFileText != null)
+            selectFileText.text = $"{fileName} ({currentFileIndex + 1}/{availableFiles.Length})";
+            
+        // 加载并解析选择的乐谱文件
+        LoadMusicSheet(selectedFilePath);
+        
+        // 更新按钮状态
+        UpdateNavigationButtons();
+        
+        Debug.Log($"ChallengeSceneManager: 加载文件 {fileName} (索引: {currentFileIndex})");
+    }
+    
+    void UpdateNavigationButtons()
+    {
+        if (availableFiles == null || availableFiles.Length <= 1)
+        {
+            // 如果只有一个或没有文件，禁用导航按钮
+            if (prevFileButton != null)
+                prevFileButton.interactable = false;
+            if (nextFileButton != null)
+                nextFileButton.interactable = false;
+        }
+        else
+        {
+            // 启用导航按钮
+            if (prevFileButton != null)
+                prevFileButton.interactable = true;
+            if (nextFileButton != null)
+                nextFileButton.interactable = true;
+        }
+    }
+    
+    public void OnPrevFileClicked()
+    {
+        Debug.Log("ChallengeSceneManager: 上一个文件按钮被点击");
+        
+        if (availableFiles == null || availableFiles.Length == 0)
+            return;
+            
+        currentFileIndex--;
+        if (currentFileIndex < 0)
+            currentFileIndex = availableFiles.Length - 1; // 循环到最后一个文件
+            
+        LoadCurrentFile();
+    }
+    
+    public void OnNextFileClicked()
+    {
+        Debug.Log("ChallengeSceneManager: 下一个文件按钮被点击");
+        
+        if (availableFiles == null || availableFiles.Length == 0)
+            return;
+            
+        currentFileIndex++;
+        if (currentFileIndex >= availableFiles.Length)
+            currentFileIndex = 0; // 循环到第一个文件
+            
+        LoadCurrentFile();
     }
     
     void LoadFromStreamingAssets()
@@ -236,7 +335,7 @@ public class ChallengeSceneManager : MonoBehaviour
                 string fileName = Path.GetFileNameWithoutExtension(selectedFilePath);
                 
                 if (selectFileText != null)
-                    selectFileText.text = $"已选择: {fileName}";
+                    selectFileText.text = $"{fileName}";
                     
                 // 尝试加载乐谱
                 LoadMusicSheet(selectedFilePath);
