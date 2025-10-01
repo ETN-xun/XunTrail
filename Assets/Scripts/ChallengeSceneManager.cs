@@ -30,6 +30,22 @@ public class ChallengeSceneManager : MonoBehaviour
     
     void Start()
     {
+        // 确保GameModeManager存在
+        if (GameModeManager.Instance == null)
+        {
+            Debug.LogWarning("ChallengeSceneManager: GameModeManager.Instance为null，正在创建新实例");
+            GameObject gameModeManagerObj = new GameObject("GameModeManager");
+            gameModeManagerObj.AddComponent<GameModeManager>();
+        }
+        
+        // 确保ChallengeDataManager存在
+        if (ChallengeDataManager.Instance == null)
+        {
+            Debug.LogWarning("ChallengeSceneManager: ChallengeDataManager.Instance为null，正在创建新实例");
+            GameObject challengeDataManagerObj = new GameObject("ChallengeDataManager");
+            challengeDataManagerObj.AddComponent<ChallengeDataManager>();
+        }
+        
         // 自动查找UI元素
         FindUIElements();
         

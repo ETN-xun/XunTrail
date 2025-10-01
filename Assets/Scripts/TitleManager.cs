@@ -13,6 +13,14 @@ void Start()
     {
         Debug.Log("TitleManager: 开始初始化按钮绑定");
         
+        // 确保GameModeManager存在
+        if (GameModeManager.Instance == null)
+        {
+            Debug.LogWarning("TitleManager: GameModeManager.Instance为null，正在创建新实例");
+            GameObject gameModeManagerObj = new GameObject("GameModeManager");
+            gameModeManagerObj.AddComponent<GameModeManager>();
+        }
+        
         // 动态查找按钮并绑定事件
         GameObject freeModeButtonObj = GameObject.Find("FreeModeButton");
         GameObject challengeButtonObj = GameObject.Find("ChallengeButton");

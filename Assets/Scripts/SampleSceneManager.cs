@@ -31,6 +31,26 @@ void Start()
         
         Debug.Log("SampleSceneManager: 开始延迟初始化");
         
+        // 检查GameModeManager是否存在，如果不存在则创建一个
+        if (GameModeManager.Instance == null)
+        {
+            Debug.LogWarning("SampleSceneManager: GameModeManager.Instance为null，正在创建新实例");
+            GameObject gameModeManagerObj = new GameObject("GameModeManager");
+            gameModeManagerObj.AddComponent<GameModeManager>();
+            // 等待一帧让GameModeManager完成初始化
+            yield return null;
+        }
+        
+        // 检查ChallengeDataManager是否存在，如果不存在则创建一个
+        if (ChallengeDataManager.Instance == null)
+        {
+            Debug.LogWarning("SampleSceneManager: ChallengeDataManager.Instance为null，正在创建新实例");
+            GameObject challengeDataManagerObj = new GameObject("ChallengeDataManager");
+            challengeDataManagerObj.AddComponent<ChallengeDataManager>();
+            // 等待一帧让ChallengeDataManager完成初始化
+            yield return null;
+        }
+        
         if (GameModeManager.Instance.IsTutorialMode())
         {
             Debug.Log("SampleSceneManager: 检测到教程模式");
@@ -50,14 +70,20 @@ void Start()
                 else
                 {
                     Debug.LogWarning("SampleSceneManager: 挑战模式但没有选中乐谱，回退到自由模式");
-                    GameModeManager.Instance.SetFreeMode();
+                    if (GameModeManager.Instance != null)
+                    {
+                        GameModeManager.Instance.SetFreeMode();
+                    }
                     SetupFreeMode();
                 }
             }
             else
             {
                 Debug.LogWarning("SampleSceneManager: 挑战模式但ChallengeDataManager不存在，回退到自由模式");
-                GameModeManager.Instance.SetFreeMode();
+                if (GameModeManager.Instance != null)
+                {
+                    GameModeManager.Instance.SetFreeMode();
+                }
                 SetupFreeMode();
             }
         }
@@ -69,7 +95,10 @@ void Start()
         else
         {
             Debug.Log("SampleSceneManager: 未知模式，默认进入自由模式");
-            GameModeManager.Instance.SetFreeMode();
+            if (GameModeManager.Instance != null)
+            {
+                GameModeManager.Instance.SetFreeMode();
+            }
             SetupFreeMode();
         }
     }
