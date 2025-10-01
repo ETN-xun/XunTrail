@@ -483,11 +483,23 @@ private void StartCountdown()
         isInChallenge = false;
         countdownStartTime = Time.time;
         
-        // 隐藏挑战UI，显示倒计时
+        // 确保所有挑战UI元素在倒计时期间也能显示
         if (challengeUI != null)
-            challengeUI.SetActive(false);
+            challengeUI.SetActive(true); // 保持挑战UI显示
             
-        // 确保UpcomingNotesText在倒计时期间也能显示
+        // 确保ScoreText始终显示
+        if (scoreText != null)
+        {
+            scoreText.gameObject.SetActive(true);
+        }
+        
+        // 确保ProgressText始终显示
+        if (progressText != null)
+        {
+            progressText.gameObject.SetActive(true);
+        }
+        
+        // 确保UpcomingNotesText始终显示
         if (upcomingNotesText != null)
         {
             upcomingNotesText.gameObject.SetActive(true);
@@ -513,7 +525,7 @@ private void StartCountdown()
             
             // 设置初始倒计时文本
             countdownText.text = "3";
-            countdownText.fontSize = 72; // 大字体
+            countdownText.fontSize = 128; // 更大字体
             countdownText.color = Color.black; // 设置颜色为黑色
             Debug.Log("倒计时文本已激活并设置初始值");
         }
@@ -536,7 +548,7 @@ private void StartCountdown()
             if (countdownText != null)
             {
                 countdownText.text = countdownNumber.ToString();
-                countdownText.fontSize = 72; // 大字体
+                countdownText.fontSize = 128; // 更大字体
                 countdownText.color = Color.black; // 设置颜色为黑色
             }
         }
@@ -554,11 +566,19 @@ private void EndCountdown()
         challengeStartTime = Time.time;
         challengeStartRealTime = Time.time; // 记录实际开始时间
         
-        // 隐藏倒计时，显示挑战UI
+        // 隐藏倒计时，确保挑战UI始终显示
         if (countdownText != null)
             countdownText.gameObject.SetActive(false);
         if (challengeUI != null)
             challengeUI.SetActive(true);
+            
+        // 确保所有挑战UI元素在挑战期间始终显示
+        if (scoreText != null)
+            scoreText.gameObject.SetActive(true);
+        if (progressText != null)
+            progressText.gameObject.SetActive(true);
+        if (upcomingNotesText != null)
+            upcomingNotesText.gameObject.SetActive(true);
             
         Debug.Log("倒计时结束，挑战正式开始！");
     }
@@ -600,13 +620,14 @@ private void EndCountdown()
             Debug.LogWarning("scoreText为null，无法更新UI得分显示");
         }
         
-        // 清理其他UI显示，但保留得分显示
+        // 清理倒计时显示，但保留得分、进度和即将到来的音符显示
         if (countdownText != null)
             countdownText.text = "";
-        if (progressText != null)
-            progressText.text = "";
-        if (upcomingNotesText != null)
-            upcomingNotesText.text = "";
+        // 不清空ProgressText和UpcomingNotesText的内容，避免潜在的bug
+        // if (progressText != null)
+        //     progressText.text = "";
+        // if (upcomingNotesText != null)
+        //     upcomingNotesText.text = "";
             
         // 延迟3秒后隐藏UI，让用户能看到最终得分
         Invoke("HideChallengeUI", 3f);
@@ -649,10 +670,11 @@ private void EndCountdown()
         // 清理UI显示
         if (countdownText != null)
             countdownText.text = "";
-        if (progressText != null)
-            progressText.text = "";
-        if (upcomingNotesText != null)
-            upcomingNotesText.text = "";
+        // 不清空ProgressText和UpcomingNotesText的内容，避免潜在的bug
+        // if (progressText != null)
+        //     progressText.text = "";
+        // if (upcomingNotesText != null)
+        //     upcomingNotesText.text = "";
         if (scoreText != null)
             scoreText.text = "";
         if (progressSlider != null)
@@ -762,8 +784,13 @@ private void EndCountdown()
     
     private void HideChallengeUI()
     {
-        if (challengeUI != null)
-            challengeUI.SetActive(false);
+        // 注意：不隐藏整个challengeUI，而是只隐藏特定元素
+        // 保持ScoreText、ProgressText和UpcomingNotesText始终显示
+        if (countdownText != null)
+            countdownText.gameObject.SetActive(false);
+        
+        // 如果需要隐藏其他特定UI元素，可以在这里添加
+        // 但ScoreText、ProgressText和UpcomingNotesText应该始终保持显示
     }
     
     public string GetCurrentExpectedNote()
@@ -1663,13 +1690,14 @@ private float CalculateCorrectTimeForNote(TimedNote timedNote)
         isCountingDown = false;
         challengeCompleted = true;
         
-        // 清理其他UI显示，但保留得分显示
+        // 清理倒计时显示，但保留得分、进度和即将到来的音符显示
         if (countdownText != null)
             countdownText.text = "";
-        if (progressText != null)
-            progressText.text = "";
-        if (upcomingNotesText != null)
-            upcomingNotesText.text = "";
+        // 不清空ProgressText和UpcomingNotesText的内容，避免潜在的bug
+        // if (progressText != null)
+        //     progressText.text = "";
+        // if (upcomingNotesText != null)
+        //     upcomingNotesText.text = "";
             
         // 延迟3秒后隐藏UI，让用户能看到最终得分
         Invoke("HideChallengeUI", 3f);

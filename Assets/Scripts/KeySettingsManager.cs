@@ -55,12 +55,21 @@ public class KeySettingsManager : MonoBehaviour
         {
             _instance = this;
             DontDestroyOnLoad(gameObject);
-            LoadKeySettings();
+            
+            // 确保在下一帧加载设置，避免时序问题
+            StartCoroutine(LoadSettingsNextFrame());
         }
         else if (_instance != this)
         {
             Destroy(gameObject);
         }
+    }
+    
+    private System.Collections.IEnumerator LoadSettingsNextFrame()
+    {
+        yield return null; // 等待一帧
+        LoadKeySettings();
+        Debug.Log("KeySettingsManager初始化完成，键位设置已加载");
     }
     
     public KeySettings GetCurrentSettings()
@@ -106,24 +115,122 @@ public class KeySettingsManager : MonoBehaviour
     {
         if (currentSettings != null)
         {
-            // 使用新的持久化系统保存
-            bool success = KeySettingsPersistence.SaveKeySettings(currentSettings);
-            if (success)
+            try
             {
-                Debug.Log("键位设置已保存到文件和PlayerPrefs");
+                // 使用新的持久化系统保存
+                bool success = KeySettingsPersistence.SaveKeySettings(currentSettings);
+                if (success)
+                {
+                    Debug.Log("键位设置已保存到文件和PlayerPrefs");
+                    
+                    // 验证保存是否成功
+                    StartCoroutine(VerifySaveAfterDelay());
+                }
+                else
+                {
+                    Debug.LogError("键位设置保存失败");
+                    // 尝试备用保存方法
+                    FallbackSave();
+                }
             }
-            else
+            catch (System.Exception e)
             {
-                Debug.LogError("键位设置保存失败");
+                Debug.LogError($"保存键位设置时发生异常: {e.Message}");
+                FallbackSave();
             }
         }
-    }
+     }
+     
+     private System.Collections.IEnumerator VerifySaveAfterDelay()
+     {
+         yield return new WaitForSeconds(0.1f); // 等待文件系统操作完成
+         
+         // 尝试重新加载以验证保存
+         var testSettings = KeySettingsPersistence.LoadKeySettings();
+         if (testSettings != null)
+         {
+             Debug.Log("保存验证成功");
+         }
+         else
+         {
+             Debug.LogWarning("保存验证失败，尝试重新保存");
+             KeySettingsPersistence.SaveKeySettings(currentSettings);
+         }
+     }
+     
+     private void FallbackSave()
+     {
+         try
+         {
+             // 备用保存方法：直接使用PlayerPrefs
+             string json = JsonUtility.ToJson(currentSettings);
+             PlayerPrefs.SetString("KeySettings_Backup", json);
+             PlayerPrefs.Save();
+             Debug.Log("使用备用方法保存键位设置");
+         }
+         catch (System.Exception e)
+         {
+             Debug.LogError($"备用保存方法也失败: {e.Message}");
+         }
+     }
     
     public void LoadKeySettings()
     {
-        // 使用新的持久化系统加载
-        currentSettings = KeySettingsPersistence.LoadKeySettings();
-        Debug.Log("键位设置已从文件或PlayerPrefs加载");
+        try
+        {
+            // 使用新的持久化系统加载
+            currentSettings = KeySettingsPersistence.LoadKeySettings();
+            
+            if (currentSettings != null)
+            {
+                Debug.Log($"键位设置加载成功 - 八孔: {string.Join(", ", currentSettings.eightHoleKeys)}");
+                Debug.Log($"键位设置加载成功 - 十孔: {string.Join(", ", currentSettings.tenHoleKeys)}");
+                return;
+            }
+            
+            // 如果主要方法失败，尝试从备用位置加载
+            Debug.LogWarning("主要加载方法失败，尝试备用方法");
+            TryLoadFromBackup();
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"加载键位设置时发生异常: {e.Message}");
+            TryLoadFromBackup();
+        }
+        
+        // 如果所有方法都失败，使用默认设置
+        if (currentSettings == null)
+        {
+            Debug.LogWarning("所有加载方法都失败，使用默认设置");
+            currentSettings = new KeySettings();
+            
+            // 立即保存默认设置
+            SaveKeySettings();
+        }
+    }
+    
+    private void TryLoadFromBackup()
+    {
+        try
+        {
+            if (PlayerPrefs.HasKey("KeySettings_Backup"))
+            {
+                string json = PlayerPrefs.GetString("KeySettings_Backup");
+                currentSettings = JsonUtility.FromJson<KeySettings>(json);
+                
+                if (currentSettings != null)
+                {
+                    Debug.Log("从备用位置加载键位设置成功");
+                    // 尝试将备用设置保存到主要位置
+                    KeySettingsPersistence.SaveKeySettings(currentSettings);
+                    return;
+                }
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"从备用位置加载失败: {e.Message}");
+        }
     }
     
     public void ResetToDefault()
