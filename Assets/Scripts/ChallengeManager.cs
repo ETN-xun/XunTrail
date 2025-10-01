@@ -367,6 +367,7 @@ private MusicSheet currentMusicSheet; // 当前使用的乐谱
         if (isCountingDown)
         {
             UpdateCountdown();
+            UpdateUpcomingNotesForCountdown(); // 倒计时期间也显示下三个音符
         }
         else if (isInChallenge)
         {
@@ -486,6 +487,12 @@ private void StartCountdown()
         if (challengeUI != null)
             challengeUI.SetActive(false);
             
+        // 确保UpcomingNotesText在倒计时期间也能显示
+        if (upcomingNotesText != null)
+        {
+            upcomingNotesText.gameObject.SetActive(true);
+        }
+            
         // 确保倒计时文本能够正确显示
         if (countdownText != null)
         {
@@ -507,6 +514,7 @@ private void StartCountdown()
             // 设置初始倒计时文本
             countdownText.text = "3";
             countdownText.fontSize = 72; // 大字体
+            countdownText.color = Color.black; // 设置颜色为黑色
             Debug.Log("倒计时文本已激活并设置初始值");
         }
         else
@@ -529,6 +537,7 @@ private void StartCountdown()
             {
                 countdownText.text = countdownNumber.ToString();
                 countdownText.fontSize = 72; // 大字体
+                countdownText.color = Color.black; // 设置颜色为黑色
             }
         }
         else
@@ -552,6 +561,17 @@ private void EndCountdown()
             challengeUI.SetActive(true);
             
         Debug.Log("倒计时结束，挑战正式开始！");
+    }
+
+    private void UpdateUpcomingNotesForCountdown()
+    {
+        // 在倒计时期间显示即将到来的音符
+        if (upcomingNotesText != null && timedNoteSequence.Count > 0)
+        {
+            string upcomingNotes = GetUpcomingNotes(3); // 显示前三个音符
+            upcomingNotesText.text = upcomingNotes;
+            upcomingNotesText.gameObject.SetActive(true); // 确保文本显示
+        }
     }
 
     public void StartChallenge()
