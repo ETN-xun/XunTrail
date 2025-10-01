@@ -157,7 +157,22 @@ private void InitializeTutorialSteps()
         
         InitializeTutorialSteps();
         SetupUI();
-        StartTutorial();
+        
+        // 只在教程模式下启动教程
+        if (GameModeManager.Instance != null && GameModeManager.Instance.IsTutorialMode())
+        {
+            Debug.Log("TutorialManager: 检测到教程模式，启动教程");
+            StartTutorial();
+        }
+        else
+        {
+            Debug.Log("TutorialManager: 非教程模式，不启动教程");
+            // 确保教程面板是隐藏的
+            if (tutorialPanel != null)
+            {
+                tutorialPanel.SetActive(false);
+            }
+        }
     }
     
 private void SetupUI()

@@ -26,28 +26,47 @@ public class SampleSceneManager : MonoBehaviour
         // 检查游戏模式
         if (GameModeManager.Instance != null)
         {
+            Debug.Log($"SampleSceneManager: 当前游戏模式 - {GameModeManager.Instance.currentMode}");
+            
             if (GameModeManager.Instance.IsTutorialMode())
             {
                 Debug.Log("SampleSceneManager: 检测到教程模式");
                 SetupTutorialMode();
             }
-            else if (ChallengeDataManager.Instance != null)
+            else if (GameModeManager.Instance.IsChallengeMode())
             {
-                MusicSheet selectedSheet = ChallengeDataManager.Instance.GetSelectedMusicSheet();
-                if (selectedSheet != null)
+                Debug.Log("SampleSceneManager: 检测到挑战模式");
+                if (ChallengeDataManager.Instance != null)
                 {
-                    Debug.Log($"SampleSceneManager: 检测到选中的乐谱 - {selectedSheet.name}，启动挑战模式");
-                    StartChallengeMode(selectedSheet);
+                    MusicSheet selectedSheet = ChallengeDataManager.Instance.GetSelectedMusicSheet();
+                    if (selectedSheet != null)
+                    {
+                        Debug.Log($"SampleSceneManager: 启动挑战模式，乐谱: {selectedSheet.name}");
+                        StartChallengeMode(selectedSheet);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("SampleSceneManager: 挑战模式但没有选中乐谱，回退到自由模式");
+                        GameModeManager.Instance.SetFreeMode();
+                        SetupFreeMode();
+                    }
                 }
                 else
                 {
-                    Debug.Log("SampleSceneManager: 没有选中的乐谱，进入自由模式");
+                    Debug.LogWarning("SampleSceneManager: 挑战模式但ChallengeDataManager不存在，回退到自由模式");
+                    GameModeManager.Instance.SetFreeMode();
                     SetupFreeMode();
                 }
             }
+            else if (GameModeManager.Instance.IsFreeMode())
+            {
+                Debug.Log("SampleSceneManager: 检测到自由模式");
+                SetupFreeMode();
+            }
             else
             {
-                Debug.Log("SampleSceneManager: ChallengeDataManager不存在，进入自由模式");
+                Debug.Log("SampleSceneManager: 未知模式，默认进入自由模式");
+                GameModeManager.Instance.SetFreeMode();
                 SetupFreeMode();
             }
         }
@@ -199,11 +218,7 @@ public class SampleSceneManager : MonoBehaviour
             Debug.Log("SampleSceneManager: 已强制停止挑战模式");
         }
         
-        // 确保游戏模式设置为自由模式
-        if (GameModeManager.Instance != null)
-        {
-            GameModeManager.Instance.SetFreeMode();
-        }
+        // 注意：不要在这里重新设置游戏模式，因为模式应该已经在TitleManager中设置好了
         
         // 在自由模式下显示基本UI
         if (challengeUI != null)
@@ -245,11 +260,7 @@ private void SetupTutorialMode()
             Debug.Log("SampleSceneManager: 已强制停止挑战模式");
         }
         
-        // 确保游戏模式设置为教程模式
-        if (GameModeManager.Instance != null)
-        {
-            GameModeManager.Instance.SetTutorialMode();
-        }
+        // 注意：不要在这里重新设置游戏模式，因为模式应该已经在TitleManager中设置好了
         
         // 在教程模式下显示基本UI
         if (challengeUI != null)

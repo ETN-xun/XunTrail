@@ -314,6 +314,13 @@ public class ChallengeSceneManager : MonoBehaviour
                 Debug.Log("ChallengeSceneManager: 乐谱数据已设置");
             }
             
+            // 设置游戏模式为挑战模式
+            if (GameModeManager.Instance != null)
+            {
+                GameModeManager.Instance.SetChallengeMode(selectedMusicSheet);
+                Debug.Log("ChallengeSceneManager: 已设置为挑战模式");
+            }
+            
             // 跳转到SampleScene开始挑战
             Debug.Log("ChallengeSceneManager: 正在跳转到SampleScene");
             SceneManager.LoadScene("SampleScene");

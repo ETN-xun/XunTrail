@@ -11,47 +11,109 @@ public class TitleManager : MonoBehaviour
     
 void Start()
     {
+        Debug.Log("TitleManager: 开始初始化按钮绑定");
+        
         // 动态查找按钮并绑定事件
         GameObject freeModeButtonObj = GameObject.Find("FreeModeButton");
         GameObject challengeButtonObj = GameObject.Find("ChallengeButton");
+        GameObject tutorialButtonObj = GameObject.Find("TutorialButton"); // 新手教程按钮
         GameObject quitButtonObj = GameObject.Find("QuitButton");
         GameObject keyChangeButtonObj = GameObject.Find("KeyChangeButton");
-        GameObject guideButtonObj = GameObject.Find("GuideButton");
+        
+        Debug.Log($"TitleManager: 按钮查找结果 - FreeModeButton: {freeModeButtonObj != null}, ChallengeButton: {challengeButtonObj != null}, TutorialButton: {tutorialButtonObj != null}, QuitButton: {quitButtonObj != null}, KeyChangeButton: {keyChangeButtonObj != null}");
         
         if (freeModeButtonObj != null)
         {
             Button freeModeButton = freeModeButtonObj.GetComponent<Button>();
             if (freeModeButton != null)
+            {
                 freeModeButton.onClick.AddListener(OnFreeModeClicked);
+                Debug.Log("TitleManager: FreeModeButton 事件绑定成功");
+            }
+            else
+            {
+                Debug.LogError("TitleManager: FreeModeButton 没有Button组件");
+            }
+        }
+        else
+        {
+            Debug.LogError("TitleManager: 未找到 FreeModeButton");
         }
         
         if (challengeButtonObj != null)
         {
             Button challengeButton = challengeButtonObj.GetComponent<Button>();
             if (challengeButton != null)
+            {
                 challengeButton.onClick.AddListener(OnChallengeModeClicked);
+                Debug.Log("TitleManager: ChallengeButton 事件绑定成功");
+            }
+            else
+            {
+                Debug.LogError("TitleManager: ChallengeButton 没有Button组件");
+            }
+        }
+        else
+        {
+            Debug.LogError("TitleManager: 未找到 ChallengeButton");
         }
         
+        if (tutorialButtonObj != null)
+        {
+            Button tutorialButton = tutorialButtonObj.GetComponent<Button>();
+            if (tutorialButton != null)
+            {
+                tutorialButton.onClick.AddListener(OnTutorialModeClicked);
+                Debug.Log("TitleManager: TutorialButton 事件绑定成功");
+            }
+            else
+            {
+                Debug.LogError("TitleManager: TutorialButton 没有Button组件");
+            }
+        }
+        else
+        {
+            Debug.LogError("TitleManager: 未找到 TutorialButton");
+        }
+        
+
         if (quitButtonObj != null)
         {
             Button quitButton = quitButtonObj.GetComponent<Button>();
             if (quitButton != null)
+            {
                 quitButton.onClick.AddListener(OnQuitClicked);
+                Debug.Log("TitleManager: QuitButton 事件绑定成功");
+            }
+            else
+            {
+                Debug.LogError("TitleManager: QuitButton 没有Button组件");
+            }
+        }
+        else
+        {
+            Debug.LogError("TitleManager: 未找到 QuitButton");
         }
         
         if (keyChangeButtonObj != null)
         {
             Button keyChangeButton = keyChangeButtonObj.GetComponent<Button>();
             if (keyChangeButton != null)
+            {
                 keyChangeButton.onClick.AddListener(OnKeyChangeClicked);
+                Debug.Log("TitleManager: KeyChangeButton 事件绑定成功");
+            }
+            else
+            {
+                Debug.LogError("TitleManager: KeyChangeButton 没有Button组件");
+            }
+        }
+        else
+        {
+            Debug.LogError("TitleManager: 未找到 KeyChangeButton");
         }
         
-        if (guideButtonObj != null)
-        {
-            Button guideButton = guideButtonObj.GetComponent<Button>();
-            if (guideButton != null)
-                guideButton.onClick.AddListener(OnGuideButtonClicked);
-        }
+        Debug.Log("TitleManager: 按钮绑定初始化完成");
     }
     
     void Update()
@@ -93,6 +155,13 @@ public void OnFreeModeClicked()
     }
 
     public void OnGuideButtonClicked()
+    {
+        Debug.Log("点击了指南按钮");
+        // 这里可以添加指南功能，比如显示游戏说明
+        // 暂时什么都不做
+    }
+
+    public void OnTutorialModeClicked()
     {
         Debug.Log("点击了新手教程按钮");
         
@@ -138,12 +207,8 @@ public void OnChallengeModeClicked()
                 Debug.Log("TitleManager: 已清除之前的挑战模式状态");
             }
             
-            // 设置游戏模式为挑战模式（暂时设置，具体乐谱在ChallengeScene中选择）
-            if (GameModeManager.Instance != null)
-            {
-                GameModeManager.Instance.SetFreeMode(); // 先设为自由模式，等选择乐谱后再设为挑战模式
-                Debug.Log("TitleManager: 准备进入挑战模式选择界面");
-            }
+            // 不在这里设置游戏模式，等在ChallengeScene选择乐谱后再设置为挑战模式
+            Debug.Log("TitleManager: 准备进入挑战模式选择界面");
             
             SceneManager.LoadScene("ChallengeScene");
         }

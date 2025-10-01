@@ -9,16 +9,11 @@ public class TitleUIManager : MonoBehaviour
     
     void Start()
     {
-        // 配置按钮点击事件
-        if (challengeButton != null)
-        {
-            challengeButton.onClick.AddListener(OnChallengeButtonClicked);
-        }
+        // 彻底禁用TitleUIManager组件，避免与TitleManager冲突
+        Debug.Log("TitleUIManager: 组件已禁用，所有按钮处理由TitleManager负责");
         
-        if (quitButton != null)
-        {
-            quitButton.onClick.AddListener(OnQuitButtonClicked);
-        }
+        // 禁用此组件
+        this.enabled = false;
     }
     
     public void OnChallengeButtonClicked()
