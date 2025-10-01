@@ -180,20 +180,13 @@ void Start()
         
         SetupUI();
         
-        // 只在教程模式下启动教程
-        if (GameModeManager.Instance != null && GameModeManager.Instance.IsTutorialMode())
+        // 不在Start中自动启动教程，让SampleSceneManager来控制
+        Debug.Log("TutorialManager: 初始化完成，等待外部调用StartTutorial");
+        
+        // 确保教程面板初始是隐藏的
+        if (tutorialPanel != null)
         {
-            Debug.Log("TutorialManager: 检测到教程模式，启动教程");
-            StartTutorial();
-        }
-        else
-        {
-            Debug.Log("TutorialManager: 非教程模式，不启动教程");
-            // 确保教程面板是隐藏的
-            if (tutorialPanel != null)
-            {
-                tutorialPanel.SetActive(false);
-            }
+            tutorialPanel.SetActive(false);
         }
     }
     

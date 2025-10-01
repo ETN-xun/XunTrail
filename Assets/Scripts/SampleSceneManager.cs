@@ -16,63 +16,60 @@ public class SampleSceneManager : MonoBehaviour
     public Text scoreText;
     public Slider progressSlider;
     
-    void Start()
+void Start()
     {
-        Debug.Log("SampleSceneManager: SampleScene已加载");
+        Debug.Log("SampleSceneManager: Start方法开始执行");
         
-        // 查找并设置UI引用
-        FindUIElements();
+        // 使用协程延迟初始化，确保其他脚本有时间完成Start方法
+        StartCoroutine(DelayedInitialization());
+    }
+    
+    private IEnumerator DelayedInitialization()
+    {
+        // 等待一帧，确保所有脚本的Start方法都执行完毕
+        yield return null;
         
-        // 检查游戏模式
-        if (GameModeManager.Instance != null)
+        Debug.Log("SampleSceneManager: 开始延迟初始化");
+        
+        if (GameModeManager.Instance.IsTutorialMode())
         {
-            Debug.Log($"SampleSceneManager: 当前游戏模式 - {GameModeManager.Instance.currentMode}");
-            
-            if (GameModeManager.Instance.IsTutorialMode())
+            Debug.Log("SampleSceneManager: 检测到教程模式");
+            SetupTutorialMode();
+        }
+        else if (GameModeManager.Instance.IsChallengeMode())
+        {
+            Debug.Log("SampleSceneManager: 检测到挑战模式");
+            if (ChallengeDataManager.Instance != null)
             {
-                Debug.Log("SampleSceneManager: 检测到教程模式");
-                SetupTutorialMode();
-            }
-            else if (GameModeManager.Instance.IsChallengeMode())
-            {
-                Debug.Log("SampleSceneManager: 检测到挑战模式");
-                if (ChallengeDataManager.Instance != null)
+                MusicSheet selectedSheet = ChallengeDataManager.Instance.GetSelectedMusicSheet();
+                if (selectedSheet != null)
                 {
-                    MusicSheet selectedSheet = ChallengeDataManager.Instance.GetSelectedMusicSheet();
-                    if (selectedSheet != null)
-                    {
-                        Debug.Log($"SampleSceneManager: 启动挑战模式，乐谱: {selectedSheet.name}");
-                        StartChallengeMode(selectedSheet);
-                    }
-                    else
-                    {
-                        Debug.LogWarning("SampleSceneManager: 挑战模式但没有选中乐谱，回退到自由模式");
-                        GameModeManager.Instance.SetFreeMode();
-                        SetupFreeMode();
-                    }
+                    Debug.Log($"SampleSceneManager: 启动挑战模式，乐谱: {selectedSheet.name}");
+                    StartChallengeMode(selectedSheet);
                 }
                 else
                 {
-                    Debug.LogWarning("SampleSceneManager: 挑战模式但ChallengeDataManager不存在，回退到自由模式");
+                    Debug.LogWarning("SampleSceneManager: 挑战模式但没有选中乐谱，回退到自由模式");
                     GameModeManager.Instance.SetFreeMode();
                     SetupFreeMode();
                 }
             }
-            else if (GameModeManager.Instance.IsFreeMode())
-            {
-                Debug.Log("SampleSceneManager: 检测到自由模式");
-                SetupFreeMode();
-            }
             else
             {
-                Debug.Log("SampleSceneManager: 未知模式，默认进入自由模式");
+                Debug.LogWarning("SampleSceneManager: 挑战模式但ChallengeDataManager不存在，回退到自由模式");
                 GameModeManager.Instance.SetFreeMode();
                 SetupFreeMode();
             }
         }
+        else if (GameModeManager.Instance.IsFreeMode())
+        {
+            Debug.Log("SampleSceneManager: 检测到自由模式");
+            SetupFreeMode();
+        }
         else
         {
-            Debug.Log("SampleSceneManager: GameModeManager不存在，进入自由模式");
+            Debug.Log("SampleSceneManager: 未知模式，默认进入自由模式");
+            GameModeManager.Instance.SetFreeMode();
             SetupFreeMode();
         }
     }
