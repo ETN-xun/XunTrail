@@ -145,17 +145,39 @@ private void InitializeTutorialSteps()
         tutorialSteps.Add(new TutorialStep("另外三个键同理。以基准音+调音的方式，能够演奏低音5到高音2的所有全半音", true));
         tutorialSteps.Add(new TutorialStep("好了，你已经学完《埙途》的全部内容了，现在可以去自由模式随意练习，或者在挑战模式挑战乐谱了！", true));
     }
+
+// 当KeySettingsManager不可用时的默认初始化
+    private void InitializeTutorialStepsWithDefaults()
+    {
+        tutorialSteps = new List<TutorialStep>();
+        
+        // 使用默认按键名称，不依赖KeySettingsManager
+        tutorialSteps.Add(new TutorialStep("欢迎来到埙音游《埙途》，在教程中你将学习怎样吹埙", true));
+        tutorialSteps.Add(new TutorialStep("首先学习如何吹气，按下【吹气键】吹气", true));
+        tutorialSteps.Add(new TutorialStep("好的，你已经学会吹气了。吹气就可以发出声音", true));
+        tutorialSteps.Add(new TutorialStep("接下来教给你如何按孔，按下【按孔键】试试吧", true));
+        tutorialSteps.Add(new TutorialStep("好的，保持按住【按孔键】，同时按下【吹气键】吹气试试", true));
+        tutorialSteps.Add(new TutorialStep("发现了吗？吹出来的音与刚才不一样了！按孔可以改变吹出声音的频率，不同的按键组合对应不同的频率。", true));
+        tutorialSteps.Add(new TutorialStep("好了，你已经学会最基本的操作了。由于按键设置未加载，请退出教程重新进入。", true));
+        
+        Debug.Log("使用默认教程步骤初始化完成");
+    }
+
     
-    void Start()
+void Start()
     {
         keySettingsManager = KeySettingsManager.Instance;
         if (keySettingsManager == null)
         {
             Debug.LogError("KeySettingsManager not found!");
-            return;
+            // 即使KeySettingsManager为null，也要初始化基本的教程步骤
+            InitializeTutorialStepsWithDefaults();
+        }
+        else
+        {
+            InitializeTutorialSteps();
         }
         
-        InitializeTutorialSteps();
         SetupUI();
         
         // 只在教程模式下启动教程

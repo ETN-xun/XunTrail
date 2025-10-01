@@ -73,7 +73,7 @@ void Start()
         }
         else
         {
-            Debug.LogError("TitleManager: 未找到 TutorialButton");
+            Debug.LogWarning("TitleManager: 未找到 TutorialButton，可能该按钮在当前场景中不存在");
         }
         
 
@@ -112,8 +112,6 @@ void Start()
         {
             Debug.LogError("TitleManager: 未找到 KeyChangeButton");
         }
-        
-        Debug.Log("TitleManager: 按钮绑定初始化完成");
     }
     
     void Update()

@@ -1667,27 +1667,38 @@ private float CalculateCorrectTimeForNote(TimedNote timedNote)
     }
     
     // 场景加载事件处理器
+// 场景加载事件处理器
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        Debug.Log($"ChallengeManager: 场景 {scene.name} 已加载，重新查找UI元素");
+        Debug.Log($"ChallengeManager: 场景 {scene.name} 已加载");
         
-        // 清空所有UI引用，强制重新查找
-        challengeUI = null;
-        scoreText = null;
-        targetNoteText = null;
-        timeText = null;
-        countdownText = null;
-        progressText = null;
-        upcomingNotesText = null;
-        progressSlider = null;
-        exitChallengeButton = null;
-        
-        // 重新查找UI元素
-        FindUIElements();
-        
-        // 重新查找其他组件引用
-        toneGenerator = null;
-        sampleSceneManager = null;
+        // 只在需要挑战模式UI的场景中查找UI元素
+        if (scene.name == "SampleScene" || scene.name == "ChallengeScene")
+        {
+            Debug.Log($"ChallengeManager: 在场景 {scene.name} 中重新查找UI元素");
+            
+            // 清空所有UI引用，强制重新查找
+            challengeUI = null;
+            scoreText = null;
+            targetNoteText = null;
+            timeText = null;
+            countdownText = null;
+            progressText = null;
+            upcomingNotesText = null;
+            progressSlider = null;
+            exitChallengeButton = null;
+            
+            // 重新查找UI元素
+            FindUIElements();
+            
+            // 重新查找其他组件引用
+            toneGenerator = null;
+            sampleSceneManager = null;
+        }
+        else
+        {
+            Debug.Log($"ChallengeManager: 场景 {scene.name} 不需要挑战模式UI，跳过UI查找");
+        }
     }
     
     // 清理事件监听器
