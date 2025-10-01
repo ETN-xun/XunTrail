@@ -476,7 +476,7 @@ public void StartChallenge(MusicSheet musicSheet)
         Debug.Log("挑战模式开始倒计时！");
     }
 
-    private void StartCountdown()
+private void StartCountdown()
     {
         isCountingDown = true;
         isInChallenge = false;
@@ -485,8 +485,34 @@ public void StartChallenge(MusicSheet musicSheet)
         // 隐藏挑战UI，显示倒计时
         if (challengeUI != null)
             challengeUI.SetActive(false);
+            
+        // 确保倒计时文本能够正确显示
         if (countdownText != null)
+        {
+            // 首先激活倒计时文本的GameObject
             countdownText.gameObject.SetActive(true);
+            
+            // 如果倒计时文本有父对象，也要确保父对象是激活的
+            Transform parent = countdownText.transform.parent;
+            while (parent != null)
+            {
+                if (!parent.gameObject.activeInHierarchy)
+                {
+                    parent.gameObject.SetActive(true);
+                    Debug.Log($"激活倒计时文本的父对象: {parent.name}");
+                }
+                parent = parent.parent;
+            }
+            
+            // 设置初始倒计时文本
+            countdownText.text = "3";
+            countdownText.fontSize = 72; // 大字体
+            Debug.Log("倒计时文本已激活并设置初始值");
+        }
+        else
+        {
+            Debug.LogError("countdownText为null，无法显示倒计时！");
+        }
             
         Debug.Log("开始3-2-1倒计时");
     }
@@ -1668,7 +1694,7 @@ private float CalculateCorrectTimeForNote(TimedNote timedNote)
     
     // 场景加载事件处理器
 // 场景加载事件处理器
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         Debug.Log($"ChallengeManager: 场景 {scene.name} 已加载");
         
@@ -1694,6 +1720,35 @@ private float CalculateCorrectTimeForNote(TimedNote timedNote)
             // 重新查找其他组件引用
             toneGenerator = null;
             sampleSceneManager = null;
+            
+            // 确保UI状态正确
+            if (scene.name == "SampleScene")
+            {
+                // 在SampleScene中，根据游戏模式设置UI状态
+                if (GameModeManager.Instance != null && GameModeManager.Instance.IsChallengeMode())
+                {
+                    // 挑战模式：确保ChallengeUI激活，倒计时文本非激活
+                    if (challengeUI != null)
+                    {
+                        challengeUI.SetActive(true);
+                        Debug.Log("ChallengeManager: 挑战模式 - ChallengeUI已激活");
+                    }
+                    if (countdownText != null)
+                    {
+                        countdownText.gameObject.SetActive(false);
+                        Debug.Log("ChallengeManager: 挑战模式 - CountdownText已隐藏");
+                    }
+                }
+                else
+                {
+                    // 非挑战模式：隐藏挑战UI
+                    if (challengeUI != null)
+                    {
+                        challengeUI.SetActive(false);
+                        Debug.Log("ChallengeManager: 非挑战模式 - ChallengeUI已隐藏");
+                    }
+                }
+            }
         }
         else
         {
