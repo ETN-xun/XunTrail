@@ -18,8 +18,8 @@ public static class KeySettingsPersistence
     /// </summary>
     private static string GetSettingsPath()
     {
-        string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        string settingsFolder = Path.Combine(documentsPath, SETTINGS_FOLDER);
+        string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        string settingsFolder = Path.Combine(appDataPath, SETTINGS_FOLDER);
         
         // 确保文件夹存在
         if (!Directory.Exists(settingsFolder))
@@ -36,8 +36,8 @@ public static class KeySettingsPersistence
     /// </summary>
     private static string GetBackupPath()
     {
-        string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        string settingsFolder = Path.Combine(documentsPath, SETTINGS_FOLDER);
+        string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        string settingsFolder = Path.Combine(appDataPath, SETTINGS_FOLDER);
         return Path.Combine(settingsFolder, BACKUP_FILE);
     }
     

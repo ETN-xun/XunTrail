@@ -21,6 +21,9 @@ void Start()
             gameModeManagerObj.AddComponent<GameModeManager>();
         }
         
+        // 初始化键位设置系统，从Appdata加载键位信息
+        InitializeKeySettings();
+        
         // 动态查找按钮并绑定事件
         GameObject freeModeButtonObj = GameObject.Find("FreeModeButton");
         GameObject challengeButtonObj = GameObject.Find("ChallengeButton");
@@ -221,6 +224,35 @@ public void OnChallengeModeClicked()
         catch (System.Exception e)
         {
             Debug.LogError($"加载挑战模式场景失败: {e.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// 初始化键位设置系统
+    /// 在进入游戏后，读取Appdata中的键位信息，如果没有则新建一个默认键位的文件
+    /// </summary>
+    private void InitializeKeySettings()
+    {
+        Debug.Log("TitleManager: 开始初始化键位设置系统");
+        
+        try
+        {
+            // 确保KeySettingsManager实例存在
+            if (KeySettingsManager.Instance == null)
+            {
+                Debug.LogWarning("TitleManager: KeySettingsManager.Instance为null，正在创建新实例");
+                GameObject keySettingsManagerObj = new GameObject("KeySettingsManager");
+                keySettingsManagerObj.AddComponent<KeySettingsManager>();
+            }
+            
+            // 加载键位设置，如果Appdata中没有文件，会自动创建默认设置
+            KeySettingsManager.Instance.LoadKeySettings();
+            
+            Debug.Log("TitleManager: 键位设置系统初始化完成");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"TitleManager: 初始化键位设置系统失败: {e.Message}");
         }
     }
 }

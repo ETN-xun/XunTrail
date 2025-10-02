@@ -40,8 +40,11 @@ public class KeyChangeManagerTen : MonoBehaviour
     
     private void LoadCurrentKeySettings()
     {
+        // 重新从Appdata加载键位设置，确保获取最新的配置
+        KeySettingsManager.Instance.LoadKeySettings();
+        
         tenHole = KeySettingsManager.Instance.GetTenHoleKeys();
-        Debug.Log("十孔键位设置已从KeySettingsManager加载");
+        Debug.Log("十孔键位设置已从Appdata重新加载");
     }
 
     // Update is called once per frame
@@ -74,6 +77,9 @@ public class KeyChangeManagerTen : MonoBehaviour
                     }
                     tenHole[t]=keyCode;
                     nowButton=null;
+                    
+                    // 立即保存键位更改到Appdata
+                    SaveKeySettingsToAppdata();
                     
                     // 检查是否有键位冲突
                     CheckForConflicts();
@@ -113,6 +119,13 @@ public class KeyChangeManagerTen : MonoBehaviour
         }
         
         UpdateStatusText("十孔键位设置已保存！");
+    }
+    
+    private void SaveKeySettingsToAppdata()
+    {
+        // 实时保存键位更改到Appdata，不检查冲突（允许临时冲突状态）
+        KeySettingsManager.Instance.SetTenHoleKeys(tenHole);
+        Debug.Log("十孔键位设置已实时保存到Appdata");
     }
     
     private void ResetToDefault()
