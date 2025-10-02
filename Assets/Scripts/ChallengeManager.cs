@@ -1187,7 +1187,7 @@ private void CalculateSimilarityAndEndChallenge()
     }
     
     // 将五线谱音名转换为当前调号下的简谱音名
-    private string ConvertToSolfege(string noteName, int key)
+    public string ConvertToSolfege(string noteName, int key)
     {
         if (string.IsNullOrEmpty(noteName))
             return "";
@@ -1433,7 +1433,7 @@ private void CalculateSimilarityAndEndChallenge()
     }
 
     // 获取当前调号
-    private int GetCurrentKey()
+    public int GetCurrentKey()
     {
         if (toneGenerator != null)
         {
