@@ -108,9 +108,10 @@ public int key = 0;
 
 void Start()
     {
-        // 使用协程确保KeySettingsManager完全初始化后再加载键位设置
-        StartCoroutine(InitializeAfterKeySettingsManager());
+        // 加载动态键位设置
+        LoadDynamicKeySettings();
         
+        InitializeKeyStates();
         InitializeAudioComponents();
         
         // 初始检测是否有手柄连接
@@ -122,28 +123,6 @@ void Start()
         {
             Debug.Log("找到ChallengeManager，挑战模式功能已启用");
         }
-    }
-    
-    private System.Collections.IEnumerator InitializeAfterKeySettingsManager()
-    {
-        // 等待几帧确保KeySettingsManager完全初始化
-        yield return null;
-        yield return null;
-        
-        // 等待KeySettingsManager实例可用
-        while (KeySettingsManager.Instance == null)
-        {
-            yield return null;
-        }
-        
-        // 再等待一帧确保设置已加载
-        yield return null;
-        
-        // 现在安全地加载动态键位设置
-        LoadDynamicKeySettings();
-        InitializeKeyStates();
-        
-        Debug.Log("ToneGenerator初始化完成，已加载键位设置");
     }
     
     public void LoadDynamicKeySettings()

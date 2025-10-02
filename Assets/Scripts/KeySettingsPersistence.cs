@@ -18,8 +18,8 @@ public static class KeySettingsPersistence
     /// </summary>
     private static string GetSettingsPath()
     {
-        string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        string settingsFolder = Path.Combine(appDataPath, SETTINGS_FOLDER);
+        string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        string settingsFolder = Path.Combine(documentsPath, SETTINGS_FOLDER);
         
         // 确保文件夹存在
         if (!Directory.Exists(settingsFolder))
@@ -36,16 +36,8 @@ public static class KeySettingsPersistence
     /// </summary>
     private static string GetBackupPath()
     {
-        string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        string settingsFolder = Path.Combine(appDataPath, SETTINGS_FOLDER);
-        
-        // 确保文件夹存在
-        if (!Directory.Exists(settingsFolder))
-        {
-            Directory.CreateDirectory(settingsFolder);
-            Debug.Log($"创建设置文件夹: {settingsFolder}");
-        }
-        
+        string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        string settingsFolder = Path.Combine(documentsPath, SETTINGS_FOLDER);
         return Path.Combine(settingsFolder, BACKUP_FILE);
     }
     
@@ -109,22 +101,16 @@ public static class KeySettingsPersistence
     {
         KeySettings settings = null;
         
-        // 1. 首先尝试从新的AppData路径加载
+        // 1. 首先尝试从文件加载
         settings = LoadFromFile();
         
-        // 2. 如果AppData路径没有文件，尝试从旧的Documents路径迁移
-        if (settings == null)
-        {
-            settings = MigrateFromOldPath();
-        }
-        
-        // 3. 如果迁移失败，尝试从PlayerPrefs加载
+        // 2. 如果文件加载失败，尝试从PlayerPrefs加载
         if (settings == null)
         {
             settings = LoadFromPlayerPrefs();
         }
         
-        // 4. 如果都失败了，使用默认设置
+        // 3. 如果都失败了，使用默认设置
         if (settings == null)
         {
             Debug.Log("使用默认键位设置");
@@ -196,69 +182,6 @@ public static class KeySettingsPersistence
         catch (Exception e)
         {
             Debug.LogError($"从备份文件加载键位设置失败: {e.Message}");
-        }
-        
-        return null;
-    }
-    
-    /// <summary>
-    /// 从旧的Documents路径迁移键位设置到新的AppData路径
-    /// </summary>
-    private static KeySettings MigrateFromOldPath()
-    {
-        try
-        {
-            // 构建旧路径
-            string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string oldSettingsFolder = Path.Combine(documentsPath, SETTINGS_FOLDER);
-            string oldFilePath = Path.Combine(oldSettingsFolder, SETTINGS_FILE);
-            string oldBackupPath = Path.Combine(oldSettingsFolder, BACKUP_FILE);
-            
-            KeySettings settings = null;
-            
-            // 尝试从旧的主文件加载
-            if (File.Exists(oldFilePath))
-            {
-                string json = File.ReadAllText(oldFilePath);
-                settings = JsonUtility.FromJson<KeySettings>(json);
-                
-                if (ValidateSettings(settings))
-                {
-                    Debug.Log($"从旧路径加载键位设置成功: {oldFilePath}");
-                    
-                    // 保存到新路径
-                    SaveKeySettings(settings);
-                    Debug.Log("键位设置已迁移到AppData目录");
-                    
-                    // 可选：删除旧文件（注释掉以保留备份）
-                    // File.Delete(oldFilePath);
-                    // if (File.Exists(oldBackupPath)) File.Delete(oldBackupPath);
-                    
-                    return settings;
-                }
-            }
-            
-            // 尝试从旧的备份文件加载
-            if (File.Exists(oldBackupPath))
-            {
-                string json = File.ReadAllText(oldBackupPath);
-                settings = JsonUtility.FromJson<KeySettings>(json);
-                
-                if (ValidateSettings(settings))
-                {
-                    Debug.Log($"从旧备份路径加载键位设置成功: {oldBackupPath}");
-                    
-                    // 保存到新路径
-                    SaveKeySettings(settings);
-                    Debug.Log("键位设置已从备份迁移到AppData目录");
-                    
-                    return settings;
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"从旧路径迁移键位设置失败: {e.Message}");
         }
         
         return null;
