@@ -5,12 +5,16 @@ using UnityEngine.InputSystem;
 
 public class ToneGenerator : MonoBehaviour
 {
-    [Header("埙参数")]
-    [Range(0.1f, 0.3f)] public float airNoiseIntensity = 0.18f;
-    [Range(0.2f, 1f)] public float formantCoupling = 0.8f;
-    [Range(0.2f, 0.4f)] public float breathPressure = 0.35f;
-    [Range(1f, 3f)] public float formantWidth = 2f;
-    [Range(0.1f, 0.6f)] public float preResonanceRatio = 0.4f;
+[Header("埙参数")]
+[Range(0.1f, 0.3f)] public float airNoiseIntensity = 0.18f;
+[Range(0.2f, 1f)] public float formantCoupling = 0.8f;
+[Range(0.2f, 0.4f)] public float breathPressure = 0.35f;
+[Range(1f, 3f)] public float formantWidth = 2f;
+[Range(0.1f, 0.6f)] public float preResonanceRatio = 0.4f;
+
+[Header("表现")]
+[Range(3f, 8f)] public float vibratoRate = 5.5f;
+[Range(0f, 0.01f)] public float vibratoDepth = 0.002f;
 
     [Header("包络控制")]
     public float volume = 0.28f;
@@ -74,6 +78,11 @@ public int key = 0;
     private bool _isFrequencyFrozen = false;
     private bool _isSpacePressed; // 线程安全的缓存变量
     private Dictionary<KeyCode, bool> _keyStates = new Dictionary<KeyCode, bool>();
+    private float _bp1_b0, _bp1_b1, _bp1_b2, _bp1_a1, _bp1_a2;
+    private float _bp1_x1, _bp1_x2, _bp1_y1, _bp1_y2;
+    private float _bp2_b0, _bp2_b1, _bp2_b2, _bp2_a1, _bp2_a2;
+    private float _bp2_x1, _bp2_x2, _bp2_y1, _bp2_y2;
+    private float _prevWhite;
     
     // Xbox手柄控制相关变量
     private bool _isGamepadConnected = false;
@@ -254,16 +263,16 @@ private void ConfigureAudioComponents()
         _lowPassFilter.lowpassResonanceQ = 0.2f;
 
         _echoFilter.delay = 25f;
-        _echoFilter.decayRatio = 0.18f;
+        _echoFilter.decayRatio = 0.12f;
         _echoFilter.wetMix = 0.03f;
         _echoFilter.enabled = false;
 
         _reverbFilter.reverbPreset = AudioReverbPreset.User;
-        _reverbFilter.room = 0.18f;
-        _reverbFilter.hfReference = 600f;
-        _reverbFilter.decayHFRatio = 0.15f;
-        _reverbFilter.density = 0.28f;
-        _reverbFilter.diffusion = 0.45f;
+        _reverbFilter.room = 0.25f;
+        _reverbFilter.hfReference = 650f;
+        _reverbFilter.decayHFRatio = 0.22f;
+        _reverbFilter.density = 0.38f;
+        _reverbFilter.diffusion = 0.60f;
 
         _frozenFrequency = _currentFrequency;
         _gainFadeTime = attackTime;
@@ -448,7 +457,8 @@ void Update()
             }
         }
 
-        double stepD = (2.0 * Mathf.PI) * _currentFrequency / sampleRate;
+        float vib = Mathf.Sin(2f * Mathf.PI * vibratoRate * dspTime) * vibratoDepth;
+        double stepD = (2.0 * Mathf.PI) * (_currentFrequency * (1.0 + vib)) / sampleRate;
         
         // 计算频率变化量，用于后续处理
         float freqChangeAmount = Mathf.Abs(_frequencyVelocity) / Mathf.Max(100f, _currentFrequency);
@@ -508,8 +518,7 @@ void Update()
                 // 频率变化时使用动态平滑系数
                 transitionFactor = Mathf.Lerp(0.85f, 0.98f, Mathf.Clamp01(freqChangeAmount * 20f));
             } else {
-                // 正常状态下的平滑系数
-                transitionFactor = 0.7f;
+                transitionFactor = 0.8f;
             }
             
             // 应用平滑处理
@@ -1559,97 +1568,87 @@ private string GetNoteName(float frequency)
 
     private void SetFilterCutoff(float frequency)
     {
-        float bandwidth = 150f;
-        float lowPass = Mathf.Clamp(frequency + bandwidth, frequency, 2000f);
-        float highPass = Mathf.Max(frequency - bandwidth, 50f);
-
-        _lowPassFilter.cutoffFrequency = Mathf.Lerp(
-            _lowPassFilter.cutoffFrequency, 
-            lowPass, 
-            _previousDelta * 20f);
-
-        _highPassFilter.cutoffFrequency = Mathf.Lerp(
-            _highPassFilter.cutoffFrequency, 
-            highPass,
-            _previousDelta * 20f);
-
-        _lowPassFilter.lowpassResonanceQ = Mathf.Lerp(
-            1.2f, 
-            1.8f, 
-            Mathf.Clamp01(frequency / 800f));
-
-        _echoFilter.enabled = frequency < 450f && _isSpacePressed;
-        _echoFilter.decayRatio = _echoFilter.enabled ? 0.12f : 0f;
-
+        float bandwidth = 120f;
+        float lowPass = Mathf.Clamp(frequency + bandwidth, 300f, 1700f);
+        float highPass = Mathf.Max(frequency * 0.45f, 70f);
+        _lowPassFilter.cutoffFrequency = Mathf.Lerp(_lowPassFilter.cutoffFrequency, lowPass, _previousDelta * 16f);
+        _highPassFilter.cutoffFrequency = Mathf.Lerp(_highPassFilter.cutoffFrequency, highPass, _previousDelta * 16f);
+        _lowPassFilter.lowpassResonanceQ = Mathf.Lerp(1.2f, 1.8f, Mathf.Clamp01(frequency / 950f));
+        _echoFilter.enabled = frequency < 420f && _isSpacePressed;
+        _echoFilter.decayRatio = _echoFilter.enabled ? 0.1f : 0f;
         if (frequency > 800f)
         {
-            float targetCutoff = 800f * preResonanceRatio;
-            _lowPassFilter.cutoffFrequency = Mathf.Lerp(
-                _lowPassFilter.cutoffFrequency, 
-                targetCutoff,
-                _previousDelta * 0.5f);
+            float targetCutoff = 760f * preResonanceRatio;
+            _lowPassFilter.cutoffFrequency = Mathf.Lerp(_lowPassFilter.cutoffFrequency, targetCutoff, _previousDelta * 0.4f);
         }
+    }
+
+    private void ComputeBandpass(float f, float q, ref float b0, ref float b1, ref float b2, ref float a1, ref float a2)
+    {
+        float w = 2f * Mathf.PI * f / sampleRate;
+        float cosw = Mathf.Cos(w);
+        float sinw = Mathf.Sin(w);
+        float alpha = sinw / (2f * Mathf.Max(0.001f, q));
+        float a0 = 1f + alpha;
+        b0 = alpha / a0;
+        b1 = 0f;
+        b2 = -alpha / a0;
+        a1 = (-2f * cosw) / a0;
+        a2 = (1f - alpha) / a0;
+    }
+
+    private void UpdateFormantCoefficients(float frequency)
+    {
+        float f1 = Mathf.Clamp(frequency * Mathf.Lerp(0.9f, 1.05f, 0.5f), 80f, 3000f);
+        float q1 = Mathf.Lerp(1.1f, 2.2f, Mathf.Clamp01(formantWidth * 0.3f));
+        float f2 = Mathf.Clamp(frequency * (1.9f + Mathf.Clamp01(formantCoupling) * 0.3f), 200f, 5000f);
+        float q2 = Mathf.Lerp(1.2f, 2.5f, Mathf.Clamp01(formantWidth * 0.2f));
+        ComputeBandpass(f1, q1, ref _bp1_b0, ref _bp1_b1, ref _bp1_b2, ref _bp1_a1, ref _bp1_a2);
+        ComputeBandpass(f2, q2, ref _bp2_b0, ref _bp2_b1, ref _bp2_b2, ref _bp2_a1, ref _bp2_a2);
+    }
+
+    private float ApplyFormants(float x)
+    {
+        float y1 = _bp1_b0 * x + _bp1_b1 * _bp1_x1 + _bp1_b2 * _bp1_x2 - _bp1_a1 * _bp1_y1 - _bp1_a2 * _bp1_y2;
+        _bp1_x2 = _bp1_x1;
+        _bp1_x1 = x;
+        _bp1_y2 = _bp1_y1;
+        _bp1_y1 = y1;
+        float y2 = _bp2_b0 * x + _bp2_b1 * _bp2_x1 + _bp2_b2 * _bp2_x2 - _bp2_a1 * _bp2_y1 - _bp2_a2 * _bp2_y2;
+        _bp2_x2 = _bp2_x1;
+        _bp2_x1 = x;
+        _bp2_y2 = _bp2_y1;
+        _bp2_y1 = y2;
+        float mix = Mathf.Lerp(0.35f, 0.55f, Mathf.Clamp01(breathPressure));
+        return y1 * (0.6f * mix) + y2 * (0.4f * mix);
     }
 
     private float GenerateXunWave(float phase)
     {
-        float fundamental = Mathf.Sin(phase) * 0.85f;
-
-        float harmonicSum = fundamental;
-        float harmonicDecay = 0.65f;
-        for (int n = 2; n <= 6; n++)
-        {
-            float amplitude = fundamental 
-                * Mathf.Pow(harmonicDecay, n) 
-                * (1f - 0.75f * Mathf.Clamp01((_currentFrequency * n)/1000f));
-
-            harmonicSum += Mathf.Sin(phase * n) * amplitude;
-        }
-
-        float formant1 = 0.15f * 
-            Mathf.Sin(phase * (1.25f + formantWidth * 0.03f)) *
-            (Mathf.Sin(phase * 0.15f) * formantWidth + 1f) *
-            Mathf.Pow(Mathf.Sin(phase * 0.35f), 2f);
-
-        float formant2 = 0.05f * 
-            Mathf.Sin(phase * (2.1f - formantCoupling * 0.1f )) * 
-            Mathf.Pow(Mathf.Sin(phase * 0.55f), 3f);
-
-        float formantSum = formant1 + (formant2 * (formantCoupling * 0.8f ));
-        formantSum = Mathf.Clamp(formantSum, -1f, 1f);
-
-        return harmonicSum * 0.92f + formantSum * 0.08f;
+        UpdateFormantCoefficients(_currentFrequency);
+        float f = Mathf.Sin(phase);
+        float h2 = Mathf.Sin(phase * 2f) * 0.20f;
+        float h3 = Mathf.Sin(phase * 3f) * 0.30f;
+        float h4 = Mathf.Sin(phase * 4f) * 0.10f;
+        float roll = 1f - 0.75f * Mathf.Clamp01(_currentFrequency / 1200f);
+        float baseSum = (f * 0.92f + h3 + h2 + h4) * roll;
+        float shaped = ApplyFormants(baseSum);
+        return baseSum * 0.75f + shaped * 0.25f;
     }
 
     private float GenerateAirNoise(float deltaTime)
     {
-        float modFrequency = breathPressure * 0.06f;
-        float breathMod = Mathf.Sin(2f * Mathf.PI * modFrequency * _time) * 0.18f;
-
-        // 使用更安全的随机数生成，防止溢出
         _noiseSeed = (_noiseSeed * 16807u) % 2147483647u;
-        if (_noiseSeed == 0) _noiseSeed = 1; // 防止种子为0
-        
-        float randomFactor = (float)_noiseSeed / 2147483647f;
-        
-        // 添加数值安全检查
-        if (!float.IsFinite(randomFactor))
-            randomFactor = 0.5f;
-            
-        float spikeNoise = randomFactor < 0.003f * breathPressure ?
-            Mathf.Sin(2f * Mathf.PI * 1000f * _time) * 0.03f : 0f;
-
-        float totalNoise = (breathMod * 0.7f) + (spikeNoise * 0.3f);
-        float dampingTime = _currentFrequency < 400f ? 0.03f : 0.015f;
-        _previousSmoothNoise = Mathf.SmoothDamp(
-            _previousSmoothNoise,
-            totalNoise,
-            ref _noiseValueDamp,
-            dampingTime,
-            float.MaxValue,
-            deltaTime);
-
-        return _previousSmoothNoise * (airNoiseIntensity * 1.2f );
+        if (_noiseSeed == 0) _noiseSeed = 1u;
+        float rnd = (float)_noiseSeed / 2147483647f;
+        if (!float.IsFinite(rnd)) rnd = 0.0f;
+        float white = (rnd * 2f - 1f) * Mathf.Lerp(0.08f, 0.22f, Mathf.Clamp01(breathPressure));
+        float low = Mathf.Lerp(_previousSmoothNoise, white, Mathf.Clamp01(deltaTime * 22f));
+        float tilt = low + (white - low) * 0.25f;
+        float freqAtten = Mathf.Lerp(0.92f, 0.65f, Mathf.Clamp01(_currentFrequency / 1200f));
+        float dampingTime = _currentFrequency < 400f ? 0.038f : 0.022f;
+        _previousSmoothNoise = Mathf.SmoothDamp(_previousSmoothNoise, tilt * freqAtten, ref _noiseValueDamp, dampingTime, float.MaxValue, deltaTime);
+        return _previousSmoothNoise * Mathf.Lerp(airNoiseIntensity * 0.78f, airNoiseIntensity * 1.05f, Mathf.Clamp01(breathPressure));
     }
 
     private float WaveShaping(float sample, float deltaTime)
@@ -1668,8 +1667,8 @@ private string GetNoteName(float frequency)
         sample *= damping;
 
         // 改进动态限幅，防止爆音
-        float compressionThreshold = 0.65f;  // 进一步降低阈值
-        float compressionRatio = 6.0f;      // 增加压缩比
+        float compressionThreshold = 0.70f;
+        float compressionRatio = 4.5f;
         
         if (Mathf.Abs(sample) > compressionThreshold) {
             float excess = Mathf.Abs(sample) - compressionThreshold;
@@ -1687,11 +1686,11 @@ private string GetNoteName(float frequency)
         if (!float.IsFinite(freqChangeAmount))
             freqChangeAmount = 0f;
             
-        float softClipMix = Mathf.Lerp(0.1f, 0.5f, Mathf.Clamp01(freqChangeAmount * 8f));
+        float softClipMix = Mathf.Lerp(0.08f, 0.4f, Mathf.Clamp01(freqChangeAmount * 8f));
         
         // 初始吹奏时也应用更强的软限幅
         if (_gain < 0.05f && _gainVelocity > 0.1f) {
-            softClipMix = Mathf.Max(softClipMix, 0.4f);
+            softClipMix = Mathf.Max(softClipMix, 0.35f);
         }
         
         sample = (softClip * softClipMix) + (sample * (1f - softClipMix));
